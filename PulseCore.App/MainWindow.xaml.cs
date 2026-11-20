@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Windows;
 using System.Windows.Input;
 using Microsoft.Web.WebView2.Core;
+using PulseCore.App.Services;
 
 namespace PulseCore.App;
 
@@ -11,11 +12,85 @@ public partial class MainWindow : Window
 {
     private const string VirtualHost = "pulsecore.app";
 
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
+
+    private readonly CancellationTokenSource _cts = new();
+    private TelemetryService? _telemetry;
+    private Task? _telemetryLoop;
+
     public MainWindow()
     {
         InitializeComponent();
         StateChanged += (_, _) => OnWindowStateChanged();
         Loaded += async (_, _) => await InitWebViewAsync();
+        Closing += (_, _) => _cts.Cancel();
+        Closed += OnClosedCleanup;
+    }
+
+    // ---------- Loop de telemetría ----------
+    private void StartTelemetryLoop()
+    {
+        if (_telemetryLoop is not null) return;
+        _telemetryLoop = Task.Run(() => TelemetryLoopAsync(_cts.Token));
+    }
+
+    /// <summary>Envía un mensaje a JS. SIEMPRE se ejecuta en el hilo de UI.</summary>
+    private Task PostToUiAsync(string json, CancellationToken ct) =>
+        Dispatcher.InvokeAsync(() => WebView.CoreWebView2?.PostWebMessageAsJson(json),
+            System.Windows.Threading.DispatcherPriority.Normal, ct).Task;
+
+    private Task ReportErrorAsync(string stage, Exception ex, CancellationToken ct)
+    {
+        var json = JsonSerializer.Serialize(
+            new { type = "telemetry_error", message = $"[{stage}] {ex}" }, JsonOptions);
+        return PostToUiAsync(json, ct);
+    }
+
+    private async Task TelemetryLoopAsync(CancellationToken ct)
+    {
+        try
+        {
+            // Computer.Open() es lento: se hace fuera del hilo de UI.
+            try { _telemetry = new TelemetryService(); }
+            catch (Exception ex) { await ReportErrorAsync("init", ex, ct); return; }
+
+            using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(1000));
+            do
+            {
+                try
+                {
+                    var snapshot = _telemetry.GetSnapshot();
+                    var json = JsonSerializer.Serialize(new { type = "telemetry", data = snapshot }, JsonOptions);
+                    await PostToUiAsync(json, ct);
+                }
+                catch (OperationCanceledException) { throw; }
+                catch (Exception ex)
+                {
+                    try { await ReportErrorAsync("tick", ex, ct); }
+                    catch (OperationCanceledException) { throw; }
+                    catch (Exception) { /* sin canal para reportar */ }
+                }
+            } while (await timer.WaitForNextTickAsync(ct));
+        }
+        catch (OperationCanceledException) { }
+    }
+
+    private void OnNavigationCompleted(object? sender, CoreWebView2NavigationCompletedEventArgs e)
+    {
+        // El loop arranca sólo cuando la página (y su listener de mensajes) ya cargó.
+        if (e.IsSuccess) StartTelemetryLoop();
+        else MessageBox.Show($"Falló la carga de la UI: {e.WebErrorStatus}", "PulseCore");
+    }
+
+    private void OnClosedCleanup(object? sender, EventArgs e)
+    {
+        _cts.Cancel();
+        try { _telemetryLoop?.Wait(TimeSpan.FromSeconds(3)); } catch (AggregateException) { }
+        _telemetry?.Dispose();
+        _cts.Dispose();
     }
 
     private async Task InitWebViewAsync()
@@ -44,6 +119,7 @@ public partial class MainWindow : Window
                 VirtualHost, wwwroot, CoreWebView2HostResourceAccessKind.Allow);
 
             WebView.CoreWebView2.WebMessageReceived += OnWebMessageReceived;
+            WebView.CoreWebView2.NavigationCompleted += OnNavigationCompleted;
             WebView.CoreWebView2.Navigate($"https://{VirtualHost}/index.html");
         }
         catch (Exception ex)

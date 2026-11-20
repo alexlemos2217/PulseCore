@@ -37,6 +37,21 @@
       </dl>
       <p class="status" id="status">Esperando ping…</p>
     </section>
+
+    <section class="card telemetry">
+      <h2>Telemetría en vivo <span class="badge" id="elevBadge">…</span></h2>
+      <div class="grid">
+        <div class="tile"><h3>CPU</h3><div class="name" id="cpuName">—</div>
+          <div class="big" id="cpuUsage">—</div><div class="sub" id="cpuMeta">—</div></div>
+        <div class="tile"><h3>GPU</h3><div class="name" id="gpuName">—</div>
+          <div class="big" id="gpuUsage">—</div><div class="sub" id="gpuMeta">—</div></div>
+        <div class="tile"><h3>RAM</h3><div class="name">Memoria del sistema</div>
+          <div class="big" id="ramPct">—</div><div class="sub" id="ramMeta">—</div></div>
+        <div class="tile"><h3>Disco</h3><div class="name" id="diskName">—</div>
+          <div class="big" id="diskPct">—</div><div class="sub" id="diskMeta">—</div></div>
+      </div>
+      <p class="status" id="telStatus">Esperando datos…</p>
+    </section>
   </main>
 
   <script src="app.js"></script>
