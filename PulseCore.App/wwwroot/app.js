@@ -704,6 +704,6 @@
 
   // Boot
   syncChartLegend();
-  addLog("SYS", "PulseCore UI v0.3 (Precision Overhaul) inicializada. Conectando puente WebView2…");
+  addLog("SYS", "PulseCore UI v1.0.0 inicializada. Conectando puente WebView2…");
   send("app.ready");
 })();

@@ -108,6 +108,27 @@ public sealed class CleanerService
             : (false, $"No se pudo vaciar la caché DNS. {(string.IsNullOrWhiteSpace(r.Error) ? r.Output.Trim() : r.Error.Trim())}".Trim());
     }
 
+    /// <summary>Escanea un directorio puntual en modo Dry Run (sin borrar nada) respetando las reglas de seguridad.</summary>
+    public CleanCategoryResult ScanDirectory(string id, string name, string directory, CancellationToken ct = default)
+    {
+        string full;
+        try { full = Path.GetFullPath(directory).TrimEnd('\\', '/'); }
+        catch (Exception) { return new CleanCategoryResult(id, name, 0, 0, false); }
+
+        if (!IsSafeRoot(full) || !Directory.Exists(full))
+            return new CleanCategoryResult(id, name, 0, 0, false);
+
+        var (bytes, files) = Measure(full, ct);
+        return new CleanCategoryResult(id, name, ToMb(bytes), files, true);
+    }
+
+    /// <summary>Valida que una ruta no apunte a carpetas críticas del sistema antes de escanear o limpiar.</summary>
+    public static bool IsSafePath(string path)
+    {
+        try { return IsSafeRoot(Path.GetFullPath(path).TrimEnd('\\', '/')); }
+        catch (Exception) { return false; }
+    }
+
     // ---------- Implementación ----------
     private static string[] TempRoots()
     {

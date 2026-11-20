@@ -39,17 +39,27 @@ public sealed class FortniteService
     ];
 
     private readonly object _lock = new();
+    private readonly string _savedDir;
+    private readonly string _backupDir;
+
+    public FortniteService(string? savedDir = null, string? backupDir = null)
+    {
+        _savedDir = string.IsNullOrWhiteSpace(savedDir)
+            ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "FortniteGame", "Saved")
+            : savedDir;
+        _backupDir = string.IsNullOrWhiteSpace(backupDir)
+            ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "PulseCore", "Backups")
+            : backupDir;
+    }
 
     // ---------- Rutas ----------
-    private static string LocalApp => Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-    private static string SavedDir => Path.Combine(LocalApp, "FortniteGame", "Saved");
-    private static string ConfigPath => Path.Combine(SavedDir, "Config", "WindowsClient", "GameUserSettings.ini");
-    private static string DemosDir => Path.Combine(SavedDir, "Demos");
-    private static string CrashesDir => Path.Combine(SavedDir, "Crashes");
-    private static string LogsDir => Path.Combine(SavedDir, "Logs");
-    private static string BackupDir =>
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "PulseCore", "Backups");
-    private static string BackupPath => Path.Combine(BackupDir, "GameUserSettings.original.ini");
+    private string SavedDir => _savedDir;
+    private string ConfigPath => Path.Combine(SavedDir, "Config", "WindowsClient", "GameUserSettings.ini");
+    private string DemosDir => Path.Combine(SavedDir, "Demos");
+    private string CrashesDir => Path.Combine(SavedDir, "Crashes");
+    private string LogsDir => Path.Combine(SavedDir, "Logs");
+    private string BackupDir => _backupDir;
+    private string BackupPath => Path.Combine(BackupDir, "GameUserSettings.original.ini");
 
     // ---------- Estado ----------
     public FortniteStatus GetStatus(string? message = null)
@@ -241,7 +251,7 @@ public sealed class FortniteService
 
     private static bool IsReadOnly(string path) => File.GetAttributes(path).HasFlag(FileAttributes.ReadOnly);
 
-    private static bool EnsureBackup()
+    private bool EnsureBackup()
     {
         if (File.Exists(BackupPath)) return false; // nunca sobrescribir el original
         Directory.CreateDirectory(BackupDir);
@@ -340,7 +350,7 @@ public sealed class FortniteService
     }
 
     // ---------- Carpetas ----------
-    private static bool IsInsideSaved(string path)
+    private bool IsInsideSaved(string path)
     {
         try
         {
@@ -351,7 +361,7 @@ public sealed class FortniteService
         catch (Exception) { return false; }
     }
 
-    private static FolderStats Measure(string[] roots)
+    private FolderStats Measure(string[] roots)
     {
         long bytes = 0;
         var files = 0;

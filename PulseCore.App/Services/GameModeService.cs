@@ -33,12 +33,13 @@ public sealed class GameModeService : IDisposable
     private Task? _loop;
     private volatile bool _disposed;
 
-    public GameModeService(PowerPlanService power, MemoryOptimizerService memory)
+    public GameModeService(PowerPlanService power, MemoryOptimizerService memory, string? configPath = null)
     {
         _power = power;
         _memory = memory;
-        _path = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "PulseCore", "games.json");
+        _path = string.IsNullOrWhiteSpace(configPath)
+            ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "PulseCore", "games.json")
+            : configPath;
         _config = Load();
     }
 

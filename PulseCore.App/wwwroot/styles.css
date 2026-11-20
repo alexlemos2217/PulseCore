@@ -1395,3 +1395,285 @@ html, body {
 .fn-clean .action-btn { align-self: flex-start; }
 
 @media (max-width: 1180px) { .fn-chips { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+
+/* ==================== MASCOTA INTERACTIVA: PULSE-LLAMA ==================== */
+.sidebar-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 8px;
+}
+
+.mascot-wrap {
+  position: relative;
+  width: 100%;
+}
+
+/* Globo de diálogo flotante (no desplaza el layout de la sidebar) */
+.mascot-bubble {
+  position: absolute;
+  bottom: calc(100% + 9px);
+  left: 0;
+  right: 0;
+  z-index: 30;
+  padding: 8px 10px;
+  border-radius: 11px;
+  font-size: 11px;
+  line-height: 1.4;
+  font-weight: 500;
+  color: var(--text);
+  background: rgba(10, 15, 26, 0.96);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(56, 189, 248, 0.36);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.6), 0 0 18px rgba(56, 189, 248, 0.14);
+  pointer-events: none;
+  transform-origin: bottom center;
+}
+.mascot-bubble[hidden] { display: none; }
+.mascot-bubble.show { animation: bubblePop 0.28s cubic-bezier(0.22, 1, 0.36, 1); }
+.mascot-bubble::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -5px;
+  width: 8px;
+  height: 8px;
+  background: rgba(10, 15, 26, 0.96);
+  border-right: 1px solid rgba(56, 189, 248, 0.36);
+  border-bottom: 1px solid rgba(56, 189, 248, 0.36);
+  transform: translateX(-50%) rotate(45deg);
+}
+.mascot-wrap.state-gaming .mascot-bubble,
+.mascot-wrap.state-gaming .mascot-bubble::after { border-color: rgba(16, 185, 129, 0.48); }
+.mascot-wrap.state-alert .mascot-bubble,
+.mascot-wrap.state-alert .mascot-bubble::after { border-color: rgba(245, 158, 11, 0.5); }
+
+@keyframes bubblePop {
+  from { opacity: 0; transform: translateY(6px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.mascot-card {
+  border-radius: 12px;
+  padding: 7px 9px 8px;
+  background: linear-gradient(180deg, rgba(19, 26, 41, 0.78), rgba(10, 14, 23, 0.9));
+  border: 1px solid var(--border);
+  border-top-color: rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  transition: border-color 0.25s, box-shadow 0.25s;
+}
+.mascot-card[hidden] { display: none; }
+.mascot-wrap.state-gaming .mascot-card {
+  border-color: rgba(129, 140, 248, 0.36);
+  box-shadow: 0 0 22px rgba(129, 140, 248, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+.mascot-wrap.state-alert .mascot-card {
+  border-color: rgba(245, 158, 11, 0.42);
+  box-shadow: 0 0 22px rgba(239, 68, 68, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.mascot-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+.mascot-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+}
+.mascot-led {
+  width: 5.5px;
+  height: 5.5px;
+  border-radius: 50%;
+  display: inline-block;
+  background: var(--cyan);
+  box-shadow: 0 0 8px var(--cyan);
+  transition: background 0.25s, box-shadow 0.25s;
+}
+.mascot-wrap.state-gaming .mascot-led { background: var(--emerald); box-shadow: 0 0 9px var(--emerald); animation: pulse 1.2s infinite; }
+.mascot-wrap.state-alert .mascot-led { background: var(--amber); box-shadow: 0 0 9px var(--red); animation: pulse 0.9s infinite; }
+
+.mascot-toggle {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 9.5px;
+  font-weight: 600;
+  padding: 2px 5px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+.mascot-toggle:hover { color: var(--text); background: rgba(255, 255, 255, 0.06); }
+
+.mascot-stage {
+  position: relative;
+  width: 100%;
+  border: 0;
+  padding: 2px 0 0;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  outline: none;
+}
+
+.mascot-aura {
+  position: absolute;
+  width: 78px;
+  height: 58px;
+  top: 12px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.28), transparent 72%);
+  filter: blur(12px);
+  pointer-events: none;
+  transition: background 0.35s ease;
+}
+.mascot-wrap.state-gaming .mascot-aura {
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.34), rgba(129, 140, 248, 0.22) 55%, transparent 75%);
+  animation: auraPulse 1.8s ease-in-out infinite;
+}
+.mascot-wrap.state-alert .mascot-aura {
+  background: radial-gradient(circle, rgba(239, 68, 68, 0.32), rgba(245, 158, 11, 0.2) 55%, transparent 75%);
+  animation: auraPulse 1.3s ease-in-out infinite;
+}
+@keyframes auraPulse {
+  0%, 100% { transform: scale(0.95); opacity: 0.7; }
+  50% { transform: scale(1.14); opacity: 1; }
+}
+
+.mascot-ring {
+  position: absolute;
+  width: 56px;
+  height: 56px;
+  top: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--cyan);
+  opacity: 0;
+  pointer-events: none;
+}
+.mascot-wrap.act-celebrate .mascot-ring { animation: ringBurst 0.85s ease-out; }
+@keyframes ringBurst {
+  0% { transform: scale(0.5); opacity: 0.9; border-color: var(--emerald); }
+  100% { transform: scale(1.85); opacity: 0; border-color: var(--cyan); }
+}
+
+.llama-svg {
+  position: relative;
+  width: 96px;
+  height: 78px;
+  overflow: visible;
+  filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.45));
+}
+
+.ll-body { transform-origin: 58px 54px; animation: llamaFloat 3.4s ease-in-out infinite; }
+.ll-shadow { transform-origin: 58px 89px; animation: shadowFloat 3.4s ease-in-out infinite; }
+
+@keyframes llamaFloat {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-3.5px); }
+}
+@keyframes shadowFloat {
+  0%, 100% { transform: scaleX(1); opacity: 0.8; }
+  50% { transform: scaleX(0.84); opacity: 0.45; }
+}
+
+/* Colores de visor y ojos según estado */
+.ll-core-dot { fill: var(--cyan); filter: drop-shadow(0 0 4px var(--cyan)); }
+.ll-eye { fill: var(--cyan); filter: drop-shadow(0 0 5px var(--cyan)); }
+.ll-eye-stroke { stroke: var(--cyan); fill: none; filter: drop-shadow(0 0 5px var(--cyan)); }
+
+.mascot-wrap.state-gaming .ll-eye,
+.mascot-wrap.state-gaming .ll-core-dot { fill: var(--emerald); filter: drop-shadow(0 0 6px var(--emerald)); }
+.mascot-wrap.state-gaming .ll-visor-frame { stroke: #10b981; }
+
+.mascot-wrap.state-alert .ll-eye-stroke { stroke: var(--amber); filter: drop-shadow(0 0 6px var(--red)); }
+.mascot-wrap.state-alert .ll-core-dot { fill: var(--red); filter: drop-shadow(0 0 5px var(--red)); }
+.mascot-wrap.state-alert .ll-visor-frame { stroke: #f59e0b; }
+
+/* Visibilidad de expresiones del visor */
+.ll-eyes { display: none; }
+.mascot-wrap.state-idle .eyes-idle { display: inline; }
+.mascot-wrap.state-gaming .eyes-gaming { display: inline; }
+.mascot-wrap.state-alert .eyes-alert { display: inline; }
+
+/* Parpadeo natural en Idle */
+.eyes-idle .ll-eye { transform-origin: 58px 41px; animation: visorBlink 4.6s ease-in-out infinite; }
+@keyframes visorBlink {
+  0%, 92%, 100% { transform: scaleY(1); }
+  95% { transform: scaleY(0.12); }
+}
+
+/* Expresiones temporales (prioridad sobre el estado base) */
+.mascot-wrap.act-wink .ll-eyes,
+.mascot-wrap.act-celebrate .ll-eyes { display: none; }
+.mascot-wrap.act-wink .eyes-wink { display: inline; }
+.mascot-wrap.act-celebrate .eyes-celebrate { display: inline; }
+.mascot-wrap.act-celebrate .eyes-celebrate .ll-eye-stroke { stroke: var(--emerald); filter: drop-shadow(0 0 7px var(--emerald)); }
+
+/* Salto y celebración */
+.mascot-wrap.act-hop .ll-body { animation: llamaHop 0.55s cubic-bezier(0.22, 1, 0.36, 1); }
+.mascot-wrap.act-celebrate .ll-body { animation: llamaCelebrate 0.9s cubic-bezier(0.22, 1, 0.36, 1); }
+@keyframes llamaHop {
+  0%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-9px) scale(1.04); }
+  70% { transform: translateY(-2px); }
+}
+@keyframes llamaCelebrate {
+  0% { transform: translateY(0) scale(1); }
+  25% { transform: translateY(-11px) rotate(-4deg) scale(1.07); }
+  50% { transform: translateY(-3px) rotate(4deg) scale(1.04); }
+  75% { transform: translateY(-7px) rotate(-2deg) scale(1.03); }
+  100% { transform: translateY(0) scale(1); }
+}
+
+/* Gota de sudor animada solo en Alerta */
+.ll-sweat { opacity: 0; transform-origin: 84px 36px; }
+.mascot-wrap.state-alert .ll-sweat { animation: sweatDrop 1.7s ease-in infinite; }
+@keyframes sweatDrop {
+  0% { opacity: 0; transform: translateY(-3px) scale(0.75); }
+  25% { opacity: 0.95; transform: translateY(0) scale(1); }
+  85% { opacity: 0.9; transform: translateY(8px) scale(0.95); }
+  100% { opacity: 0; transform: translateY(11px) scale(0.7); }
+}
+
+.mascot-status {
+  margin-top: 1px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  color: var(--cyan);
+}
+.mascot-wrap.state-gaming .mascot-status { color: var(--emerald); }
+.mascot-wrap.state-alert .mascot-status { color: var(--amber); }
+
+/* Botón compacto cuando está oculta */
+.mascot-restore {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 6px 10px;
+  border-radius: 9px;
+  border: 1px dashed var(--border-strong);
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--muted);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.mascot-restore[hidden] { display: none; }
+.mascot-restore:hover { color: var(--text); border-color: rgba(56, 189, 248, 0.4); background: rgba(56, 189, 248, 0.06); }
