@@ -1,9 +1,11 @@
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Input;
 using Microsoft.Web.WebView2.Core;
+using PulseCore.App.Models;
 using PulseCore.App.Services;
 
 namespace PulseCore.App;
@@ -20,6 +22,12 @@ public partial class MainWindow : Window
     private readonly CancellationTokenSource _cts = new();
     private TelemetryService? _telemetry;
     private Task? _telemetryLoop;
+
+    private readonly PowerPlanService _power = new();
+    private readonly MemoryOptimizerService _memory = new();
+    private readonly CleanerService _cleaner = new();
+    private readonly ProcessMonitorService _processes = new();
+    private readonly SemaphoreSlim _actionGate = new(1, 1);
 
     public MainWindow()
     {
@@ -104,7 +112,7 @@ public partial class MainWindow : Window
             var env = await CoreWebView2Environment.CreateAsync(userDataFolder: userData);
             await WebView.EnsureCoreWebView2Async(env);
 
-            WebView.DefaultBackgroundColor = System.Drawing.Color.FromArgb(0x09, 0x0b, 0x10);
+            WebView.DefaultBackgroundColor = System.Drawing.Color.FromArgb(0x06, 0x08, 0x0d);
 
             var settings = WebView.CoreWebView2.Settings;
             settings.AreDefaultContextMenusEnabled = false;
@@ -135,10 +143,13 @@ public partial class MainWindow : Window
     private void OnWebMessageReceived(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
     {
         string type;
+        JsonElement? payload = null;
         try
         {
             using var doc = JsonDocument.Parse(e.WebMessageAsJson);
             type = doc.RootElement.TryGetProperty("type", out var t) ? t.GetString() ?? "" : "";
+            if (doc.RootElement.TryGetProperty("payload", out var p) && p.ValueKind == JsonValueKind.Object)
+                payload = p.Clone();
         }
         catch (JsonException)
         {
@@ -162,22 +173,154 @@ public partial class MainWindow : Window
             case "window.close":
                 Close();
                 break;
+            case "get_optimizer_state":
+                _ = RunActionAsync("get_optimizer_state", "optimizer_state", false,
+                    () => Task.FromResult<object>(GetOptimizerState()));
+                break;
+            case "set_power_plan":
+            {
+                var guid = PayloadString(payload, "guid") ?? "";
+                _ = RunActionAsync("set_power_plan", "power_plan_result", true,
+                    () => Task.FromResult<object>(_power.SetPowerPlan(guid)));
+                break;
+            }
+            case "optimize_ram":
+                _ = RunActionAsync("optimize_ram", "ram_result", true,
+                    () => Task.FromResult<object>(_memory.Optimize()));
+                break;
+            case "scan_cleanup":
+                _ = RunActionAsync("scan_cleanup", "scan_result", true,
+                    async () => await _cleaner.ScanAsync());
+                break;
+            case "run_cleanup":
+            {
+                var cats = PayloadStrings(payload, "categories");
+                var progress = new Progress<CleanItemResult>(item => Send("cleanup_progress", item));
+                _ = RunActionAsync("run_cleanup", "cleanup_result", true,
+                    async () => await _cleaner.CleanAsync(cats, progress));
+                break;
+            }
+            case "run_quick_boost":
+                _ = RunActionAsync("run_quick_boost", "boost_result", true,
+                    () => Task.FromResult<object>(QuickBoost()));
+                break;
             case "backend.ping":
                 Send("backend.pong", GetSystemInfo());
                 break;
             case "app.ready":
                 SendWindowState();
+                Send("system.info", GetSystemInfo());
                 break;
         }
+    }
+
+    // ---------- Acciones del Optimizador / Limpieza ----------
+    private static string? PayloadString(JsonElement? p, string name) =>
+        p is { ValueKind: JsonValueKind.Object } el
+        && el.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String
+            ? v.GetString()
+            : null;
+
+    private static string[] PayloadStrings(JsonElement? p, string name)
+    {
+        if (p is { ValueKind: JsonValueKind.Object } el
+            && el.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Array)
+        {
+            return v.EnumerateArray()
+                .Where(x => x.ValueKind == JsonValueKind.String)
+                .Select(x => x.GetString()!)
+                .ToArray();
+        }
+        return [];
+    }
+
+    /// <summary>Ejecuta trabajo pesado fuera del hilo de UI y responde por el puente. Las acciones exclusivas no se solapan.</summary>
+    private async Task RunActionAsync(string action, string replyType, bool exclusive, Func<Task<object>> work)
+    {
+        var gated = false;
+        if (exclusive)
+        {
+            if (!await _actionGate.WaitAsync(0))
+            {
+                Send("action_error", new { action, message = "Hay otra operación en curso. Esperá a que termine." });
+                return;
+            }
+            gated = true;
+        }
+
+        try
+        {
+            var result = await Task.Run(work);
+            Send(replyType, result);
+        }
+        catch (Exception ex)
+        {
+            Send("action_error", new { action, message = ex.Message });
+        }
+        finally
+        {
+            if (gated) _actionGate.Release();
+        }
+    }
+
+    private object GetOptimizerState()
+    {
+        var plans = _power.GetPlans();
+        var active = plans.FirstOrDefault(p => p.IsActive);
+        return new
+        {
+            plans,
+            activePlan = active,
+            topProcesses = _processes.GetTopByMemory(5)
+        };
+    }
+
+    /// <summary>Cadena: Alto Rendimiento (si existe) + liberar RAM + vaciar DNS. Todo reversible (el plan previo se informa).</summary>
+    private QuickBoostResult QuickBoost()
+    {
+        var sw = Stopwatch.StartNew();
+        var plans = _power.GetPlans();
+        var prev = plans.FirstOrDefault(p => p.IsActive);
+        var target = plans.FirstOrDefault(p => p.Kind == "high") ?? plans.FirstOrDefault(p => p.Kind == "ultimate");
+
+        var available = target is not null;
+        var changed = false;
+        var planName = prev?.Name ?? "Desconocido";
+        string planMsg;
+
+        if (target is null)
+        {
+            planMsg = "Alto Rendimiento no está disponible en este equipo; el plan no se modificó.";
+        }
+        else if (target.IsActive)
+        {
+            planName = target.Name;
+            planMsg = $"{target.Name} ya estaba activo.";
+        }
+        else
+        {
+            var r = _power.SetPowerPlan(target.Guid);
+            planMsg = r.Message;
+            if (r.Success)
+            {
+                changed = true;
+                planName = r.ActiveName ?? target.Name;
+            }
+        }
+
+        var ram = _memory.Optimize();
+        var (dnsOk, dnsMsg) = _cleaner.FlushDns();
+        sw.Stop();
+
+        return new QuickBoostResult(available, changed, planName, prev?.Guid, prev?.Name,
+            planMsg, ram, dnsOk, dnsMsg, sw.ElapsedMilliseconds);
     }
 
     // ---------- C# -> JS ----------
     private void Send(string type, object? payload = null)
     {
         if (WebView.CoreWebView2 is null) return;
-        var json = JsonSerializer.Serialize(
-            new { type, payload },
-            new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+        var json = JsonSerializer.Serialize(new { type, payload }, JsonOptions);
         WebView.CoreWebView2.PostWebMessageAsJson(json);
     }
 

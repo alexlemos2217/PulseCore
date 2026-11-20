@@ -75,9 +75,10 @@ public sealed class TelemetryService : IDisposable
             }
         }
 
+        var source = _computer is null ? "Fallback (Windows nativo)" : "LibreHardwareMonitor";
         return new TelemetrySnapshot(
             cpu, gpu, ram, ReadStorage(), DateTimeOffset.Now, _isElevated,
-            _computer is null ? "Fallback (Windows nativo)" : "LibreHardwareMonitor",
+            source,
             notices.Count > 0 ? string.Join(" | ", notices) : null);
     }
 
@@ -90,17 +91,21 @@ public sealed class TelemetryService : IDisposable
         var sensors = AllSensors(hw).ToList();
 
         var load = Value(sensors, SensorType.Load, "CPU Total")
-                   ?? Average(sensors.Where(s => s.SensorType == SensorType.Load && s.Name.StartsWith("CPU Core")))
+                   ?? Average(sensors.Where(s => s.SensorType == SensorType.Load && s.Name.StartsWith("CPU Core", StringComparison.OrdinalIgnoreCase)))
                    ?? (float?)_fbCpuUsage;
 
-        var temp = Value(sensors, SensorType.Temperature, "CPU Package")
-                   ?? Value(sensors, SensorType.Temperature, "Core (Tctl/Tdie)")
-                   ?? Value(sensors, SensorType.Temperature, "Core Max")
-                   ?? Value(sensors, SensorType.Temperature, "CPU Total")
-                   ?? Average(sensors.Where(s => s.SensorType == SensorType.Temperature && s.Name.StartsWith("Core")));
+        // AMD Ryzen expone "Core (Tctl/Tdie)", "Tctl", "Tdie", "CPU Package" o "Core ...".
+        // Si el sensor devuelve 0 o null (p. ej. VBS/Defender bloqueando el driver), devolvemos null -> "N/D".
+        var tempSensors = sensors.Where(s => s.SensorType == SensorType.Temperature).ToList();
+        var temp = FirstPositiveContaining(tempSensors, "Tctl")
+                   ?? FirstPositiveContaining(tempSensors, "Tdie")
+                   ?? FirstPositiveContaining(tempSensors, "Package")
+                   ?? AveragePositive(tempSensors.Where(s => s.Name.Contains("Core", StringComparison.OrdinalIgnoreCase)));
 
-        var freq = Average(sensors.Where(s =>
-            s.SensorType == SensorType.Clock && s.Name.StartsWith("Core") && !s.Name.Contains("Bus")));
+        var clockSensors = sensors.Where(s =>
+            s.SensorType == SensorType.Clock && !s.Name.Contains("Bus", StringComparison.OrdinalIgnoreCase)).ToList();
+        var freq = AveragePositive(clockSensors.Where(s => s.Name.Contains("Core #", StringComparison.OrdinalIgnoreCase)))
+                   ?? AveragePositive(clockSensors.Where(s => s.Name.Contains("Core", StringComparison.OrdinalIgnoreCase)));
 
         return new CpuInfo(hw.Name, Round(load) ?? 0, Round(temp), Round(freq, 0));
     }
@@ -120,8 +125,8 @@ public sealed class TelemetryService : IDisposable
         var sensors = AllSensors(hw).ToList();
 
         var load = Value(sensors, SensorType.Load, "GPU Core");
-        var temp = Value(sensors, SensorType.Temperature, "GPU Core")
-                   ?? Value(sensors, SensorType.Temperature, "GPU Hot Spot");
+        var temp = Positive(Value(sensors, SensorType.Temperature, "GPU Core"))
+                   ?? Positive(Value(sensors, SensorType.Temperature, "GPU Hot Spot"));
         var used = Value(sensors, SensorType.SmallData, "GPU Memory Used")
                    ?? Value(sensors, SensorType.SmallData, "D3D Dedicated Memory Used");
         var total = Value(sensors, SensorType.SmallData, "GPU Memory Total")
@@ -133,14 +138,23 @@ public sealed class TelemetryService : IDisposable
     // ---------- RAM ----------
     private RamInfo ReadRam(IHardware? hw)
     {
-        if (hw is null) return _fallback.ReadRam() ?? new RamInfo(0, 0, 0);
-        var sensors = AllSensors(hw).ToList();
+        // GlobalMemoryStatusEx devuelve siempre la RAM física real instalada (sin memoria virtual/pagefile).
+        var physical = _fallback.ReadRam();
+        if (physical is not null && physical.TotalGb > 0)
+            return physical;
+
+        if (hw is null || hw.Name.Contains("Virtual", StringComparison.OrdinalIgnoreCase))
+            return new RamInfo(0, 0, 0);
+
+        var sensors = AllSensors(hw)
+            .Where(s => !s.Name.Contains("Virtual", StringComparison.OrdinalIgnoreCase))
+            .ToList();
 
         var used = Value(sensors, SensorType.Data, "Memory Used");
         var avail = Value(sensors, SensorType.Data, "Memory Available");
         var pct = Value(sensors, SensorType.Load, "Memory");
 
-        if (used is null) return _fallback.ReadRam() ?? new RamInfo(0, 0, Round(pct) ?? 0);
+        if (used is null) return new RamInfo(0, 0, Round(pct) ?? 0);
         var total = avail is null ? (pct is > 0 ? used.Value * 100 / pct.Value : used.Value) : used.Value + avail.Value;
         pct ??= total > 0 ? used.Value / total * 100 : 0;
         return new RamInfo(Round(used, 2) ?? 0, Round(total, 2) ?? 0, Round(pct) ?? 0);
@@ -190,6 +204,28 @@ public sealed class TelemetryService : IDisposable
         var vals = sensors.Select(s => Valid(s.Value)).Where(v => v.HasValue).Select(v => v!.Value).ToList();
         return vals.Count > 0 ? vals.Average() : null;
     }
+
+    private static float? FirstPositiveContaining(IEnumerable<ISensor> sensors, string token)
+    {
+        foreach (var s in sensors)
+        {
+            if (s.Name.Contains(token, StringComparison.OrdinalIgnoreCase))
+            {
+                var v = Positive(s.Value);
+                if (v.HasValue) return v;
+            }
+        }
+        return null;
+    }
+
+    private static float? AveragePositive(IEnumerable<ISensor> sensors)
+    {
+        var vals = sensors.Select(s => Positive(s.Value)).Where(v => v.HasValue).Select(v => v!.Value).ToList();
+        return vals.Count > 0 ? vals.Average() : null;
+    }
+
+    private static float? Positive(float? v) =>
+        v is { } f && !float.IsNaN(f) && !float.IsInfinity(f) && f > 0f ? f : null;
 
     private static float? Valid(float? v) => v is { } f && !float.IsNaN(f) && !float.IsInfinity(f) ? f : null;
 

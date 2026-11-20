@@ -4,56 +4,515 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>PulseCore</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+  <!-- Fondo atmosférico: micro-grilla + auras ambientales -->
+  <div class="ambient-bg" aria-hidden="true">
+    <div class="aura aura-top"></div>
+    <div class="aura aura-bottom"></div>
+  </div>
+
+  <div class="boost-frame" id="boostFrame" aria-hidden="true"></div>
+  <div class="toast-host" id="toastHost" aria-live="polite"></div>
+
+  <!-- ========== BARRA SUPERIOR CUSTOM ========== -->
   <header class="titlebar" id="titlebar">
-    <div class="brand"><span class="dot"></span>PulseCore</div>
-    <div class="drag-area" id="dragArea"></div>
-    <div class="controls">
-      <button class="ctl" id="btnMin" title="Minimizar" aria-label="Minimizar">
-        <svg width="10" height="10" viewBox="0 0 10 10"><path d="M0 5h10" stroke="currentColor" fill="none"/></svg>
+    <div class="tb-left" id="dragLeft">
+      <div class="brand">
+        <svg class="brand-icon" width="19" height="19" viewBox="0 0 24 24" fill="none">
+          <rect x="2" y="2" width="20" height="20" rx="6" stroke="url(#pcGrad)" stroke-width="1.8" />
+          <path d="M5.5 12h3.2l2-4.8 2.8 9.6 2-4.8h3" stroke="url(#pcGrad)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          <defs>
+            <linearGradient id="pcGrad" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#38bdf8" />
+              <stop offset="1" stop-color="#818cf8" />
+            </linearGradient>
+          </defs>
+        </svg>
+        <span class="brand-name">PULSECORE</span>
+      </div>
+
+      <div class="live-pill" id="livePill" title="Estado de telemetría en tiempo real">
+        <span class="pulse-dot"></span>
+        <span id="livePillText">CONECTANDO</span>
+      </div>
+    </div>
+
+    <div class="tb-drag" id="dragArea">
+      <div class="tb-mini-stats" aria-label="Resumen rápido">
+        <span class="mini-item">
+          <span class="mini-dot cyan"></span>
+          <span class="mini-label">CPU</span>
+          <span class="mini-val mono" id="tbCpu">—% · —</span>
+        </span>
+        <span class="mini-sep"></span>
+        <span class="mini-item">
+          <span class="mini-dot emerald"></span>
+          <span class="mini-label">GPU</span>
+          <span class="mini-val mono" id="tbGpu">—% · —</span>
+        </span>
+      </div>
+    </div>
+
+    <div class="tb-controls">
+      <button class="win-btn" id="btnMin" title="Minimizar" aria-label="Minimizar">
+        <svg width="10" height="10" viewBox="0 0 10 10"><path d="M1 5h8" stroke="currentColor" stroke-width="1.2" /></svg>
       </button>
-      <button class="ctl" id="btnMax" title="Maximizar" aria-label="Maximizar">
-        <svg id="iconMax" width="10" height="10" viewBox="0 0 10 10"><rect x="0.5" y="0.5" width="9" height="9" stroke="currentColor" fill="none"/></svg>
-        <svg id="iconRestore" width="10" height="10" viewBox="0 0 10 10" style="display:none"><path d="M2.5 2.5v-2h7v7h-2M0.5 2.5h7v7h-7z" stroke="currentColor" fill="none"/></svg>
+      <button class="win-btn" id="btnMax" title="Maximizar" aria-label="Maximizar">
+        <svg id="iconMax" width="10" height="10" viewBox="0 0 10 10"><rect x="1" y="1" width="8" height="8" rx="1" stroke="currentColor" stroke-width="1.2" fill="none" /></svg>
+        <svg id="iconRestore" width="10" height="10" viewBox="0 0 10 10" style="display:none"><path d="M3 3V1.2h5.8V7H7M1.2 3H7v5.8H1.2z" stroke="currentColor" stroke-width="1.15" fill="none" /></svg>
       </button>
-      <button class="ctl close" id="btnClose" title="Cerrar" aria-label="Cerrar">
-        <svg width="10" height="10" viewBox="0 0 10 10"><path d="M0 0l10 10M10 0L0 10" stroke="currentColor" fill="none"/></svg>
+      <button class="win-btn close" id="btnClose" title="Cerrar" aria-label="Cerrar">
+        <svg width="10" height="10" viewBox="0 0 10 10"><path d="M1.2 1.2l7.6 7.6M8.8 1.2l-7.6 7.6" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" /></svg>
       </button>
     </div>
   </header>
 
-  <main class="content">
-    <section class="card">
-      <h1>PulseCore</h1>
-      <p class="subtitle">Fase 1 · Puente C# ↔ JS</p>
-      <button class="btn" id="btnPing">Ping Backend C#</button>
-      <dl class="info" id="info" hidden>
-        <dt>Nombre de la PC</dt><dd id="infoMachine">—</dd>
-        <dt>Versión de Windows</dt><dd id="infoOs">—</dd>
-        <dt>Arquitectura</dt><dd id="infoArch">—</dd>
-        <dt>Núcleos lógicos</dt><dd id="infoCores">—</dd>
-      </dl>
-      <p class="status" id="status">Esperando ping…</p>
-    </section>
+  <!-- ========== SHELL PRINCIPAL ========== -->
+  <div class="shell">
+    <!-- SIDEBAR FIJA -->
+    <aside class="sidebar">
+      <nav class="nav" aria-label="Navegación principal">
+        <div class="nav-section-label">MONITOREO</div>
+        <button class="nav-item active" data-view="dashboard">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="9" rx="2" /><rect x="14" y="3" width="7" height="5" rx="2" />
+            <rect x="14" y="12" width="7" height="9" rx="2" /><rect x="3" y="16" width="7" height="5" rx="2" />
+          </svg>
+          <span>Dashboard</span>
+        </button>
 
-    <section class="card telemetry">
-      <h2>Telemetría en vivo <span class="badge" id="elevBadge">…</span></h2>
-      <div class="grid">
-        <div class="tile"><h3>CPU</h3><div class="name" id="cpuName">—</div>
-          <div class="big" id="cpuUsage">—</div><div class="sub" id="cpuMeta">—</div></div>
-        <div class="tile"><h3>GPU</h3><div class="name" id="gpuName">—</div>
-          <div class="big" id="gpuUsage">—</div><div class="sub" id="gpuMeta">—</div></div>
-        <div class="tile"><h3>RAM</h3><div class="name">Memoria del sistema</div>
-          <div class="big" id="ramPct">—</div><div class="sub" id="ramMeta">—</div></div>
-        <div class="tile"><h3>Disco</h3><div class="name" id="diskName">—</div>
-          <div class="big" id="diskPct">—</div><div class="sub" id="diskMeta">—</div></div>
+        <div class="nav-section-label">RENDIMIENTO</div>
+        <button class="nav-item" data-view="optimizer">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+          </svg>
+          <span>Optimizador</span>
+        </button>
+        <button class="nav-item" data-view="cleaner">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+          </svg>
+          <span>Limpieza</span>
+        </button>
+        <button class="nav-item" data-view="gamemode">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="6" width="20" height="12" rx="4" />
+            <path d="M6 12h4M8 10v4M15 11h.01M18 13h.01" />
+          </svg>
+          <span>Modo Juego</span>
+        </button>
+
+        <div class="nav-section-label">SISTEMA</div>
+        <button class="nav-item" data-view="logs">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="4 17 10 11 4 5" /><line x1="12" y1="19" x2="20" y2="19" />
+          </svg>
+          <span>Logs</span>
+          <span class="nav-badge mono" id="logCountBadge">0</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="sys-chip">
+          <div class="sys-chip-row">
+            <span class="sys-machine" id="sbMachine">PC Local</span>
+            <span class="sys-ver mono">v0.3</span>
+          </div>
+          <div class="sys-meta mono" id="sbMeta">Inicializando…</div>
+          <div class="sys-source mono" id="sbSource" title="Motor de sensores activo">Driver: —</div>
+        </div>
       </div>
-      <p class="status" id="telStatus">Esperando datos…</p>
-    </section>
-  </main>
+    </aside>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <main class="viewport" id="viewport">
+      <!-- ==================== VISTA 1: DASHBOARD ==================== -->
+      <section class="view active" id="view-dashboard">
+        <!-- FILA SUPERIOR: 4 INSTRUMENTOS DE PRECISIÓN 240° -->
+        <div class="hero-grid">
+          <!-- CPU -->
+          <article class="card glow-card hero-card" data-accent="cyan">
+            <div class="card-head">
+              <span class="card-tag cyan">CPU</span>
+              <span class="temp-pill mono" id="cpuTempPill">N/D</span>
+            </div>
+            <div class="gauge-wrap">
+              <svg class="gauge-svg" viewBox="0 0 132 114">
+                <g class="gauge-ticks" id="cpuTicks"></g>
+                <circle class="gauge-track" cx="66" cy="64" r="46" transform="rotate(150 66 64)" />
+                <circle class="gauge-arc cyan" id="cpuArc" cx="66" cy="64" r="46" transform="rotate(150 66 64)" />
+                <circle class="gauge-tip cyan" id="cpuTip" cx="26.16" cy="87" r="3.4" />
+              </svg>
+              <div class="gauge-center">
+                <div class="gauge-val mono" id="cpuUsage">—%</div>
+                <div class="gauge-sub">USO</div>
+              </div>
+            </div>
+            <div class="hw-name" id="cpuName" title="Procesador">Detectando CPU…</div>
+            <div class="hero-foot">
+              <div class="foot-metric">
+                <span class="foot-label">Frecuencia</span>
+                <span class="foot-val mono" id="cpuFreq">N/D</span>
+              </div>
+              <div class="foot-metric right">
+                <span class="foot-label">Temperatura</span>
+                <span class="foot-val mono" id="cpuTempText">N/D</span>
+              </div>
+            </div>
+          </article>
+
+          <!-- GPU -->
+          <article class="card glow-card hero-card" data-accent="emerald">
+            <div class="card-head">
+              <span class="card-tag emerald">GPU</span>
+              <span class="temp-pill mono" id="gpuTempPill">N/D</span>
+            </div>
+            <div class="gauge-wrap">
+              <svg class="gauge-svg" viewBox="0 0 132 114">
+                <g class="gauge-ticks" id="gpuTicks"></g>
+                <circle class="gauge-track" cx="66" cy="64" r="46" transform="rotate(150 66 64)" />
+                <circle class="gauge-arc emerald" id="gpuArc" cx="66" cy="64" r="46" transform="rotate(150 66 64)" />
+                <circle class="gauge-tip emerald" id="gpuTip" cx="26.16" cy="87" r="3.4" />
+              </svg>
+              <div class="gauge-center">
+                <div class="gauge-val mono" id="gpuUsage">—%</div>
+                <div class="gauge-sub">CARGA</div>
+              </div>
+            </div>
+            <div class="hw-name" id="gpuName" title="Tarjeta gráfica">Detectando GPU…</div>
+            <div class="bar-block">
+              <div class="bar-head">
+                <span class="foot-label">VRAM</span>
+                <span class="foot-val mono nowrap" id="gpuVramText">N/D</span>
+              </div>
+              <div class="bar-track"><div class="bar-fill emerald" id="gpuVramBar" style="width:0%"></div></div>
+            </div>
+          </article>
+
+          <!-- RAM -->
+          <article class="card glow-card hero-card" data-accent="violet">
+            <div class="card-head">
+              <span class="card-tag violet">RAM</span>
+              <span class="temp-pill mono muted" id="ramPressurePill">Normal</span>
+            </div>
+            <div class="gauge-wrap">
+              <svg class="gauge-svg" viewBox="0 0 132 114">
+                <g class="gauge-ticks" id="ramTicks"></g>
+                <circle class="gauge-track" cx="66" cy="64" r="46" transform="rotate(150 66 64)" />
+                <circle class="gauge-arc violet" id="ramArc" cx="66" cy="64" r="46" transform="rotate(150 66 64)" />
+                <circle class="gauge-tip violet" id="ramTip" cx="26.16" cy="87" r="3.4" />
+              </svg>
+              <div class="gauge-center">
+                <div class="gauge-val mono" id="ramPct">—%</div>
+                <div class="gauge-sub">FÍSICA</div>
+              </div>
+            </div>
+            <div class="hw-name">Memoria Física Instalada</div>
+            <div class="bar-block">
+              <div class="bar-head">
+                <span class="foot-label">En uso</span>
+                <span class="foot-val mono nowrap" id="ramText">— / — GB</span>
+              </div>
+              <div class="bar-track"><div class="bar-fill violet" id="ramBar" style="width:0%"></div></div>
+            </div>
+          </article>
+
+          <!-- STORAGE -->
+          <article class="card glow-card hero-card" data-accent="amber">
+            <div class="card-head">
+              <span class="card-tag amber">STORAGE</span>
+              <span class="temp-pill mono muted" id="diskDrivePill">C:</span>
+            </div>
+            <div class="gauge-wrap">
+              <svg class="gauge-svg" viewBox="0 0 132 114">
+                <g class="gauge-ticks" id="diskTicks"></g>
+                <circle class="gauge-track" cx="66" cy="64" r="46" transform="rotate(150 66 64)" />
+                <circle class="gauge-arc amber" id="diskArc" cx="66" cy="64" r="46" transform="rotate(150 66 64)" />
+                <circle class="gauge-tip amber" id="diskTip" cx="26.16" cy="87" r="3.4" />
+              </svg>
+              <div class="gauge-center">
+                <div class="gauge-val mono" id="diskPct">—%</div>
+                <div class="gauge-sub">USADO</div>
+              </div>
+            </div>
+            <div class="hw-name" id="diskTitle">Unidad del Sistema (C:)</div>
+            <div class="bar-block">
+              <div class="bar-head">
+                <span class="foot-label">Libre</span>
+                <span class="foot-val mono nowrap" id="diskText">— GB libres / — GB</span>
+              </div>
+              <div class="bar-track"><div class="bar-fill amber" id="diskBar" style="width:0%"></div></div>
+            </div>
+          </article>
+        </div>
+
+        <!-- FILA MEDIA: GRÁFICO CANVAS 2D PRO + GAMING READINESS HERO -->
+        <div class="dash-bottom">
+          <!-- GRÁFICO EN TIEMPO REAL -->
+          <article class="card glow-card chart-card">
+            <div class="panel-head chart-head">
+              <div>
+                <h2 class="panel-title">Telemetría en Tiempo Real</h2>
+                <p class="panel-sub" id="chartSubtitle">Historial de 60 segundos · Pasá el cursor para inspeccionar</p>
+              </div>
+
+              <div class="chart-controls">
+                <div class="mode-switch" id="chartModeSwitch" role="tablist">
+                  <button class="mode-btn active" data-mode="usage">Uso (%)</button>
+                  <button class="mode-btn" data-mode="temp">Temp (°C)</button>
+                  <button class="mode-btn" data-mode="ram">RAM (%)</button>
+                </div>
+
+                <div class="chart-legend" id="chartLegend">
+                  <button class="legend-btn active" id="toggleSeriesA" data-series="a">
+                    <span class="mini-dot cyan" id="dotSeriesA"></span>
+                    <span id="labelSeriesA">CPU</span>
+                    <strong class="mono" id="valSeriesA">—%</strong>
+                  </button>
+                  <button class="legend-btn active" id="toggleSeriesB" data-series="b">
+                    <span class="mini-dot emerald" id="dotSeriesB"></span>
+                    <span id="labelSeriesB">GPU</span>
+                    <strong class="mono" id="valSeriesB">—%</strong>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="canvas-wrap" id="canvasWrap">
+              <canvas id="telemetryChart"></canvas>
+              <div class="chart-tooltip mono" id="chartTooltip" hidden></div>
+            </div>
+
+            <div class="chart-foot mono">
+              <span id="chartPeakA">Pico CPU: —%</span>
+              <span id="chartPeakB">Pico GPU: —%</span>
+              <span id="chartLastTick">Esperando muestra…</span>
+            </div>
+          </article>
+
+          <!-- PANEL GAMING READINESS HERO -->
+          <article class="card glow-card readiness-card">
+            <div class="panel-head">
+              <div>
+                <h2 class="panel-title">Gaming Readiness</h2>
+                <p class="panel-sub">Diagnóstico térmico y carga</p>
+              </div>
+              <span class="ready-badge" id="readyBadge">Calculando…</span>
+            </div>
+
+            <div class="score-hero">
+              <div class="score-halo-wrap">
+                <div class="score-halo" id="scoreHalo"></div>
+                <div class="score-number mono" id="readyScore">--</div>
+              </div>
+              <div class="score-right">
+                <div class="score-caption">ÍNDICE DE PRECISIÓN</div>
+                <div class="led-bar" id="ledBar" aria-label="Nivel de Gaming Readiness"></div>
+                <div class="score-hint" id="readyHint">Analizando sensores del sistema…</div>
+              </div>
+            </div>
+
+            <div class="readiness-metrics">
+              <div class="rm-row">
+                <span>Salud Térmica</span>
+                <span class="mono" id="rmThermal">—</span>
+              </div>
+              <div class="rm-row">
+                <span>Holgura CPU / GPU</span>
+                <span class="mono" id="rmLoad">—</span>
+              </div>
+              <div class="rm-row">
+                <span>Presión de Memoria</span>
+                <span class="mono" id="rmMem">—</span>
+              </div>
+            </div>
+
+            <button class="boost-btn" id="btnQuickBoost">
+              <span class="boost-beam" aria-hidden="true"></span>
+              <span class="boost-scan" aria-hidden="true"></span>
+              <span class="boost-content">
+                <span class="boost-spinner"></span>
+                <span class="boost-bolt">⚡</span>
+                <span id="boostBtnLabel">Activar Boost Rápido</span>
+              </span>
+            </button>
+
+            <div class="quick-actions">
+              <button class="qa-btn" data-jump="optimizer"><span class="qa-dot cyan"></span>Optimizador</button>
+              <button class="qa-btn" data-jump="cleaner"><span class="qa-dot emerald"></span>Limpieza</button>
+              <button class="qa-btn" data-jump="gamemode"><span class="qa-dot violet"></span>Modo Juego</button>
+              <button class="qa-btn" data-jump="logs"><span class="qa-dot amber"></span>Logs</button>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <!-- ==================== VISTA 2: OPTIMIZADOR ==================== -->
+      <section class="view" id="view-optimizer">
+        <div class="view-header">
+          <div>
+            <h1>Optimizador de Sistema</h1>
+            <p>Planes de energía, memoria y procesos: acciones reales sobre Windows y 100% reversibles.</p>
+          </div>
+          <span class="phase-pill live">Conectado a Windows</span>
+        </div>
+
+        <div class="opt-grid">
+          <!-- PLANES DE ENERGÍA -->
+          <article class="card glow-card opt-card">
+            <div class="panel-head">
+              <div>
+                <h2 class="panel-title">Plan de Energía</h2>
+                <p class="panel-sub">Cambiá el plan activo real de Windows; podés volver al anterior cuando quieras</p>
+              </div>
+              <span class="mini-tag mono" id="powerActiveTag">—</span>
+            </div>
+            <div class="plan-grid" id="planGrid">
+              <div class="empty-inline mono">Leyendo planes de energía…</div>
+            </div>
+          </article>
+
+          <!-- LIBERADOR DE RAM -->
+          <article class="card glow-card opt-card ram-card">
+            <div class="panel-head">
+              <div>
+                <h2 class="panel-title">Liberador de RAM</h2>
+                <p class="panel-sub">Recorta memoria en espera sin cerrar ningún programa</p>
+              </div>
+            </div>
+            <div class="ram-counter">
+              <div class="ram-counter-val mono" id="ramSessionVal">0 MB</div>
+              <div class="ram-counter-cap">LIBERADOS EN ESTA SESIÓN</div>
+            </div>
+            <div class="ram-prog"><div class="ram-prog-fill" id="ramProgFill"></div></div>
+            <div class="ram-last mono" id="ramLast">Sin ejecuciones todavía</div>
+            <button class="action-btn primary" id="btnFreeRam">
+              <span class="btn-spin"></span>
+              <span id="btnFreeRamLabel">Liberar RAM</span>
+            </button>
+          </article>
+
+          <!-- TOP 5 PROCESOS -->
+          <article class="card glow-card opt-card procs-card">
+            <div class="panel-head">
+              <div>
+                <h2 class="panel-title">Top 5 Procesos por RAM</h2>
+                <p class="panel-sub">Excluye procesos críticos del sistema</p>
+              </div>
+              <button class="action-btn small" id="btnRefreshProcs">Refrescar</button>
+            </div>
+            <div class="proc-list" id="procList">
+              <div class="empty-inline mono">Leyendo procesos…</div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <!-- ==================== VISTA 3: LIMPIEZA ==================== -->
+      <section class="view" id="view-cleaner">
+        <div class="view-header">
+          <div>
+            <h1>Limpieza Profunda</h1>
+            <p>Analizá primero (no borra nada) y luego limpiá solo lo que elijas. Los archivos en uso se omiten.</p>
+          </div>
+          <div class="head-actions">
+            <button class="action-btn" id="btnScan"><span class="btn-spin"></span><span id="btnScanLabel">Analizar sistema</span></button>
+            <button class="action-btn primary" id="btnClean" disabled><span class="btn-spin"></span><span id="btnCleanLabel">Limpiar seleccionados</span></button>
+          </div>
+        </div>
+
+        <div class="scan-track" id="scanTrack"><div class="scan-bar"></div></div>
+        <div class="clean-total mono" id="cleanTotal">Pulsá “Analizar sistema” para calcular el espacio recuperable.</div>
+
+        <div class="clean-grid" id="cleanGrid"></div>
+
+        <div class="clean-banner" id="cleanBanner" hidden>
+          <div class="cb-icon">✓</div>
+          <div>
+            <div class="cb-title">Limpieza completada</div>
+            <div class="cb-sub mono" id="cbSub">—</div>
+          </div>
+          <div class="cb-total mono" id="cbTotal">0 MB</div>
+        </div>
+      </section>
+
+      <!-- ==================== VISTA 4: MODO JUEGO ==================== -->
+      <section class="view" id="view-gamemode">
+        <div class="view-header">
+          <div>
+            <h1>Modo Juego Automático</h1>
+            <p>Perfiles inteligentes que se activan al detectar un juego en ejecución.</p>
+          </div>
+          <span class="phase-pill">Listo para Fase 4</span>
+        </div>
+
+        <div class="profile-grid">
+          <button class="card glow-card profile-card active" data-profile="Competitivo FPS">
+            <span class="card-tag cyan">PERFIL ACTIVO</span>
+            <h3>Competitivo FPS</h3>
+            <p>Máxima prioridad de CPU, energía al 100% y mínima latencia de entrada.</p>
+          </button>
+          <button class="card glow-card profile-card" data-profile="Balanceado">
+            <span class="card-tag emerald">EQUILIBRIO</span>
+            <h3>Balanceado</h3>
+            <p>Buen rendimiento sostenido controlando temperaturas y ruido de ventiladores.</p>
+          </button>
+          <button class="card glow-card profile-card" data-profile="Silencioso">
+            <span class="card-tag violet">BAJO RUIDO</span>
+            <h3>Silencioso</h3>
+            <p>Ideal para juegos indie o sesiones nocturnas con consumo moderado.</p>
+          </button>
+        </div>
+
+        <article class="card glow-card games-table-card">
+          <div class="panel-head">
+            <div>
+              <h2 class="panel-title">Biblioteca Detectada</h2>
+              <p class="panel-sub">En Fase 4 se escanearán Steam, Epic, Xbox y procesos activos automáticamente</p>
+            </div>
+          </div>
+          <div class="empty-games mono">
+            [ Sin juegos escaneados todavía · Motor de detección programado para Fase 4 ]
+          </div>
+        </article>
+      </section>
+
+      <!-- ==================== VISTA 5: LOGS ==================== -->
+      <section class="view" id="view-logs">
+        <div class="view-header">
+          <div>
+            <h1>Consola de Eventos</h1>
+            <p>Registro en tiempo real del puente WebView2, sensores y estado del sistema.</p>
+          </div>
+          <div class="log-toolbar">
+            <div class="filter-group" id="logFilters">
+              <button class="filter-btn active" data-filter="ALL">ALL</button>
+              <button class="filter-btn" data-filter="SYS">SYS</button>
+              <button class="filter-btn" data-filter="TEL">TEL</button>
+              <button class="filter-btn" data-filter="BOOST">BOOST</button>
+              <button class="filter-btn" data-filter="POWER">POWER</button>
+              <button class="filter-btn" data-filter="CLEAN">CLEAN</button>
+              <button class="filter-btn" data-filter="INFO">INFO</button>
+              <button class="filter-btn" data-filter="WARN">WARN</button>
+              <button class="filter-btn" data-filter="ERR">ERR</button>
+            </div>
+            <button class="action-btn small" id="btnClearLogs">Limpiar</button>
+          </div>
+        </div>
+
+        <article class="card terminal-card">
+          <div class="terminal-body mono" id="logConsole"></div>
+        </article>
+      </section>
+    </main>
+  </div>
 
   <script src="app.js"></script>
+  <script src="features.js"></script>
 </body>
 </html>
