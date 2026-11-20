@@ -28,10 +28,15 @@ public partial class MainWindow : Window
     private readonly CleanerService _cleaner = new();
     private readonly ProcessMonitorService _processes = new();
     private readonly SemaphoreSlim _actionGate = new(1, 1);
+    private readonly NetworkPingService _ping = new();
+    private readonly GameModeService _gameMode;
+    private volatile TelemetrySnapshot? _lastSnapshot;
 
     public MainWindow()
     {
         InitializeComponent();
+        _gameMode = new GameModeService(_power, _memory);
+        _gameMode.Event += (type, payload) => Dispatcher.InvokeAsync(() => Send(type, payload));
         StateChanged += (_, _) => OnWindowStateChanged();
         Loaded += async (_, _) => await InitWebViewAsync();
         Closing += (_, _) => _cts.Cancel();
@@ -71,6 +76,7 @@ public partial class MainWindow : Window
                 try
                 {
                     var snapshot = _telemetry.GetSnapshot();
+                    _lastSnapshot = snapshot;
                     var json = JsonSerializer.Serialize(new { type = "telemetry", data = snapshot }, JsonOptions);
                     await PostToUiAsync(json, ct);
                 }
@@ -89,7 +95,11 @@ public partial class MainWindow : Window
     private void OnNavigationCompleted(object? sender, CoreWebView2NavigationCompletedEventArgs e)
     {
         // El loop arranca sólo cuando la página (y su listener de mensajes) ya cargó.
-        if (e.IsSuccess) StartTelemetryLoop();
+        if (e.IsSuccess)
+        {
+            StartTelemetryLoop();
+            _gameMode.Start();
+        }
         else MessageBox.Show($"Falló la carga de la UI: {e.WebErrorStatus}", "PulseCore");
     }
 
@@ -97,6 +107,7 @@ public partial class MainWindow : Window
     {
         _cts.Cancel();
         try { _telemetryLoop?.Wait(TimeSpan.FromSeconds(3)); } catch (AggregateException) { }
+        _gameMode.Dispose();
         _telemetry?.Dispose();
         _cts.Dispose();
     }
@@ -173,6 +184,52 @@ public partial class MainWindow : Window
             case "window.close":
                 Close();
                 break;
+            case "get_game_mode_state":
+                _ = RunActionAsync("get_game_mode_state", "game_mode_state", false,
+                    () => Task.FromResult<object>(GameReply(true, null)));
+                break;
+            case "toggle_game_mode":
+            {
+                var enabled = PayloadBool(payload, "enabled");
+                _ = RunActionAsync("toggle_game_mode", "game_mode_state", false, () =>
+                {
+                    var (ok, msg) = _gameMode.SetEnabled(enabled);
+                    return Task.FromResult<object>(GameReply(ok, msg));
+                });
+                break;
+            }
+            case "add_game_profile":
+            {
+                var name = PayloadString(payload, "name");
+                var proc = PayloadString(payload, "process");
+                _ = RunActionAsync("add_game_profile", "game_mode_state", false, () =>
+                {
+                    var (ok, msg) = _gameMode.AddGame(name, proc);
+                    return Task.FromResult<object>(GameReply(ok, msg));
+                });
+                break;
+            }
+            case "remove_game_profile":
+            {
+                var proc = PayloadString(payload, "process");
+                _ = RunActionAsync("remove_game_profile", "game_mode_state", false, () =>
+                {
+                    var (ok, msg) = _gameMode.RemoveGame(proc);
+                    return Task.FromResult<object>(GameReply(ok, msg));
+                });
+                break;
+            }
+            case "run_ping_test":
+                _ = RunActionAsync("run_ping_test", "ping_result", false,
+                    async () => await _ping.RunBurstAsync());
+                break;
+            case "export_logs":
+            {
+                var logsPayload = payload;
+                _ = RunActionAsync("export_logs", "export_result", false,
+                    () => Task.FromResult<object>(ExportDiagnostics(logsPayload)));
+                break;
+            }
             case "get_optimizer_state":
                 _ = RunActionAsync("get_optimizer_state", "optimizer_state", false,
                     () => Task.FromResult<object>(GetOptimizerState()));
@@ -212,6 +269,63 @@ public partial class MainWindow : Window
                 Send("system.info", GetSystemInfo());
                 break;
         }
+    }
+
+    // ---------- Modo Juego / Exportación ----------
+    private static readonly JsonSerializerOptions ExportOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = true,
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+    };
+
+    private static bool PayloadBool(JsonElement? p, string name) =>
+        p is { ValueKind: JsonValueKind.Object } el
+        && el.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.True;
+
+    private object GameReply(bool ok, string? message) =>
+        new { success = ok, message, state = _gameMode.GetState() };
+
+    private object ExportDiagnostics(JsonElement? p)
+    {
+        var logs = new List<object>();
+        if (p is { ValueKind: JsonValueKind.Object } el
+            && el.TryGetProperty("logs", out var arr) && arr.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var item in arr.EnumerateArray().Take(2000))
+            {
+                if (item.ValueKind != JsonValueKind.Object) continue;
+                string Get(string n) => item.TryGetProperty(n, out var v) && v.ValueKind == JsonValueKind.String
+                    ? v.GetString() ?? "" : "";
+                logs.Add(new { ts = Get("ts"), level = Get("level"), message = Get("message") });
+            }
+        }
+
+        var dir = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+        if (string.IsNullOrEmpty(dir) || !Directory.Exists(dir))
+            dir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+
+        var stamp = DateTime.Now.ToString("yyyyMMdd_HHmm");
+        var fileName = $"PulseCore_Diagnostico_{stamp}.json";
+        var path = Path.Combine(dir, fileName);
+        if (File.Exists(path))
+        {
+            fileName = $"PulseCore_Diagnostico_{DateTime.Now:yyyyMMdd_HHmmss}.json";
+            path = Path.Combine(dir, fileName);
+        }
+
+        var doc = new
+        {
+            app = "PulseCore",
+            generatedAt = DateTimeOffset.Now,
+            system = GetSystemInfo(),
+            telemetry = _lastSnapshot,
+            gameMode = _gameMode.GetState(),
+            logCount = logs.Count,
+            logs
+        };
+        File.WriteAllText(path, JsonSerializer.Serialize(doc, ExportOptions), new System.Text.UTF8Encoding(false));
+        return new { path, fileName, directory = dir, logCount = logs.Count };
     }
 
     // ---------- Acciones del Optimizador / Limpieza ----------

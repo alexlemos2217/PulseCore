@@ -685,13 +685,6 @@
   $("btnMax").addEventListener("click", () => send("window.toggleMaximize"));
   $("btnClose").addEventListener("click", () => send("window.close"));
 
-  document.querySelectorAll(".profile-card").forEach((card) =>
-    card.addEventListener("click", () => {
-      document.querySelectorAll(".profile-card").forEach((c) => c.classList.remove("active"));
-      card.classList.add("active");
-      addLog("SYS", `Modo Juego: perfil seleccionado "${card.dataset.profile}".`);
-    }));
-
   $("logFilters").addEventListener("click", (e) => {
     const btn = e.target.closest(".filter-btn");
     if (!btn) return;
@@ -707,7 +700,7 @@
 
   window.addEventListener("resize", () => requestAnimationFrame(drawChart));
 
-  window.PulseCore = { addLog, send };
+  window.PulseCore = { addLog, send, getLogs: () => state.logs.map((l) => ({ ts: l.ts, level: l.level, message: l.message })) };
 
   // Boot
   syncChartLegend();

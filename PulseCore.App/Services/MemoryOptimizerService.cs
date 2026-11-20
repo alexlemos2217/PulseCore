@@ -28,7 +28,7 @@ public sealed class MemoryOptimizerService
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern bool CloseHandle(IntPtr hObject);
 
-    public RamOptimizeResult Optimize()
+    public RamOptimizeResult Optimize(int? excludePid = null)
     {
         var sw = Stopwatch.StartNew();
         var probe = new FallbackProbe();
@@ -44,7 +44,7 @@ public sealed class MemoryOptimizerService
         {
             try
             {
-                if (p.Id <= 4 || p.Id == self || Skip.Contains(p.ProcessName)) continue;
+                if (p.Id <= 4 || p.Id == self || p.Id == excludePid || Skip.Contains(p.ProcessName)) continue;
 
                 var h = OpenProcess(PROCESS_SET_QUOTA | PROCESS_QUERY_INFORMATION, false, p.Id);
                 if (h == IntPtr.Zero) continue; // protegido o sin acceso

@@ -445,8 +445,10 @@
   }
 
   // ==================== ERRORES DEL BACKEND ====================
+  const OWN_ACTIONS = ["run_quick_boost", "optimize_ram", "set_power_plan", "scan_cleanup", "run_cleanup", "get_optimizer_state"];
   function onActionError(e) {
     const a = e.action;
+    if (!OWN_ACTIONS.includes(a)) return;
     if (a === "run_quick_boost") resetBoostUi(0);
     if (a === "optimize_ram") { ramProgressEnd(); setRamBusy(false); }
     if (a === "set_power_plan") send("get_optimizer_state");
@@ -495,6 +497,9 @@
   // Refrescar estado al entrar al Optimizador
   document.querySelectorAll('[data-view="optimizer"], [data-jump="optimizer"]').forEach((b) =>
     b.addEventListener("click", () => send("get_optimizer_state")));
+
+  // Utilidades compartidas con otros módulos (gamemode.js)
+  Object.assign(window.PulseCore = window.PulseCore || {}, { toast, fmtMb, countUp, pulseFrame, sleep, esc });
 
   // Carga inicial
   send("get_optimizer_state");

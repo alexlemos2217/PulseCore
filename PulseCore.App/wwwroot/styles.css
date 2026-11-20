@@ -1216,3 +1216,127 @@ html, body {
 .cb-title { font-size: 15px; font-weight: 700; }
 .cb-sub { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
 .cb-total { margin-left: auto; font-size: 30px; font-weight: 700; color: var(--emerald); text-shadow: 0 0 22px rgba(16, 185, 129, 0.4); }
+
+/* ==================== FASE 4 · PARTE 2: MODO JUEGO / PING / LOGS ==================== */
+#view-gamemode > *, #view-logs > * { flex-shrink: 0; }
+#view-logs > .terminal-card { flex-shrink: 1; }
+.log-lvl.GAME { color: #a78bfa; }
+
+.filter-group.wide { align-self: flex-start; flex-wrap: wrap; align-items: center; }
+.filter-sep { width: 1px; height: 14px; background: var(--border-strong); margin: 0 4px; }
+
+/* Badge dinámico */
+.gm-badge {
+  display: inline-flex; align-items: center; gap: 8px; padding: 6px 13px; border-radius: 999px;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.07em; white-space: nowrap;
+  border: 1px solid var(--border-strong); color: var(--muted); background: rgba(255, 255, 255, 0.04);
+  transition: all 0.3s ease;
+}
+.gm-badge .pulse-dot { animation: none; }
+.gm-badge.waiting {
+  color: var(--violet); background: rgba(129, 140, 248, 0.12); border-color: rgba(129, 140, 248, 0.4);
+  box-shadow: 0 0 22px rgba(129, 140, 248, 0.18);
+}
+.gm-badge.waiting .pulse-dot { animation: pulse 1.8s ease-in-out infinite; }
+.gm-badge.playing {
+  color: var(--emerald); background: rgba(16, 185, 129, 0.14); border-color: rgba(16, 185, 129, 0.5);
+  box-shadow: 0 0 26px rgba(16, 185, 129, 0.26);
+}
+.gm-badge.playing .pulse-dot { animation: pulse 1s ease-in-out infinite; }
+
+/* Switch maestro */
+.gm-master { padding: 18px 22px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.gm-master-info h3 { margin: 0 0 4px; font-size: 15px; }
+.gm-master-info p { margin: 0; font-size: 12px; color: var(--muted); line-height: 1.5; max-width: 640px; }
+.switch.big { width: 58px; height: 32px; }
+.switch.big span::before { width: 24px; height: 24px; left: 3px; top: 3px; }
+.switch.big input:checked + span::before { transform: translateX(26px); }
+.switch.big input:checked + span { background: rgba(16, 185, 129, 0.28); border-color: var(--emerald); box-shadow: 0 0 20px rgba(16, 185, 129, 0.3); }
+.switch.big input:checked + span::before { background: var(--emerald); box-shadow: 0 0 10px var(--emerald); }
+
+/* Sesión activa */
+.gm-session {
+  padding: 16px 22px; display: flex; align-items: center; justify-content: space-between; gap: 20px;
+  border-color: rgba(16, 185, 129, 0.45); background: linear-gradient(135deg, rgba(16, 185, 129, 0.13), rgba(129, 140, 248, 0.08));
+  box-shadow: 0 0 34px rgba(16, 185, 129, 0.14);
+}
+.gm-session[hidden] { display: none; }
+.gm-session-cap { font-size: 9.5px; font-weight: 700; letter-spacing: 0.14em; color: var(--emerald); }
+.gm-session-game { font-size: 20px; font-weight: 700; margin: 2px 0; }
+.gm-session-meta { font-size: 11px; color: var(--text-dim); }
+.gm-session-timer { font-size: 32px; font-weight: 700; color: var(--emerald); text-shadow: 0 0 22px rgba(16, 185, 129, 0.4); white-space: nowrap; }
+
+.gm-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 14px; }
+.gm-games-card, .gm-ping-card { padding: 18px 20px; display: flex; flex-direction: column; gap: 6px; }
+
+/* Juegos */
+.games-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+.game-card {
+  display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px;
+  border: 1px solid var(--border); background: rgba(255, 255, 255, 0.025);
+  transition: border-color 0.2s, background 0.2s, box-shadow 0.25s;
+  animation: viewEnter 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.game-card:hover { border-color: var(--border-strong); background: rgba(255, 255, 255, 0.04); }
+.game-card.live { border-color: rgba(16, 185, 129, 0.5); background: rgba(16, 185, 129, 0.08); box-shadow: 0 0 22px rgba(16, 185, 129, 0.15); }
+.gc-avatar {
+  width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; font-weight: 800; font-size: 14px;
+  color: var(--violet); background: rgba(129, 140, 248, 0.14); flex-shrink: 0;
+}
+.game-card.live .gc-avatar { color: var(--emerald); background: rgba(16, 185, 129, 0.16); }
+.gc-info { flex: 1; min-width: 0; }
+.gc-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gc-proc { font-size: 10.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gc-live { font-size: 9.5px; font-weight: 700; letter-spacing: 0.1em; color: var(--emerald); }
+.gc-del {
+  width: 28px; height: 28px; border-radius: 8px; border: 1px solid transparent; background: transparent;
+  color: var(--muted); cursor: pointer; font-size: 13px; transition: all 0.15s; flex-shrink: 0;
+}
+.gc-del:hover { color: var(--red); background: rgba(239, 68, 68, 0.12); border-color: rgba(239, 68, 68, 0.35); }
+
+.add-game { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; padding-top: 10px; border-top: 1px solid var(--border); }
+.gm-input {
+  min-width: 0; padding: 8px 11px; border-radius: 9px; border: 1px solid var(--border-strong);
+  background: rgba(255, 255, 255, 0.04); color: var(--text); font: inherit; font-size: 12px; outline: none;
+  user-select: text; transition: border-color 0.16s, box-shadow 0.16s;
+}
+.gm-input::placeholder { color: var(--muted); }
+.gm-input:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.14); }
+
+/* Ping */
+.ping-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; position: relative; }
+.ping-card {
+  position: relative; overflow: hidden; padding: 12px; border-radius: 12px;
+  border: 1px solid var(--border); background: rgba(255, 255, 255, 0.025);
+  display: flex; flex-direction: column; gap: 6px; transition: border-color 0.3s, box-shadow 0.3s;
+}
+.ping-card[data-tone="good"] { border-color: rgba(16, 185, 129, 0.4); box-shadow: 0 0 20px rgba(16, 185, 129, 0.1); }
+.ping-card[data-tone="warn"] { border-color: rgba(245, 158, 11, 0.45); box-shadow: 0 0 20px rgba(245, 158, 11, 0.1); }
+.ping-card[data-tone="bad"] { border-color: rgba(239, 68, 68, 0.5); box-shadow: 0 0 20px rgba(239, 68, 68, 0.12); }
+.pc-top { display: flex; align-items: center; gap: 7px; }
+.pc-dot { width: 8px; height: 8px; border-radius: 50%; background: #334155; flex-shrink: 0; transition: background 0.3s, box-shadow 0.3s; }
+.ping-card[data-tone="good"] .pc-dot { background: var(--emerald); box-shadow: 0 0 10px var(--emerald); }
+.ping-card[data-tone="warn"] .pc-dot { background: var(--amber); box-shadow: 0 0 10px var(--amber); }
+.ping-card[data-tone="bad"] .pc-dot { background: var(--red); box-shadow: 0 0 10px var(--red); }
+.pc-label { font-size: 11.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pc-method { margin-left: auto; font-size: 9px; color: var(--muted); white-space: nowrap; }
+.pc-host { font-size: 9.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pc-ms { font-size: 26px; font-weight: 700; letter-spacing: -0.03em; white-space: nowrap; }
+.ping-card[data-tone="good"] .pc-ms { color: var(--emerald); }
+.ping-card[data-tone="warn"] .pc-ms { color: var(--amber); }
+.ping-card[data-tone="bad"] .pc-ms { color: var(--red); }
+.pc-bars { display: flex; align-items: flex-end; gap: 3px; height: 26px; }
+.pc-bar { flex: 1; min-height: 3px; border-radius: 2px; background: rgba(255, 255, 255, 0.14); transition: height 0.6s cubic-bezier(0.22, 1, 0.36, 1); }
+.ping-card[data-tone="good"] .pc-bar { background: rgba(16, 185, 129, 0.7); }
+.ping-card[data-tone="warn"] .pc-bar { background: rgba(245, 158, 11, 0.7); }
+.ping-card[data-tone="bad"] .pc-bar { background: rgba(239, 68, 68, 0.7); }
+.pc-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 8px; font-size: 10px; color: var(--text-dim); white-space: nowrap; }
+.ping-sweep { position: absolute; inset: 0; pointer-events: none; opacity: 0; background: linear-gradient(105deg, transparent 30%, rgba(56, 189, 248, 0.2) 50%, transparent 70%); background-size: 250% 100%; }
+.ping-grid.scanning .ping-sweep { opacity: 1; animation: scanWave 1.1s linear infinite; }
+.ping-legend { display: flex; gap: 14px; font-size: 10.5px; color: var(--muted); margin-top: 4px; }
+.ping-legend .lg { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
+.lg.good { background: var(--emerald); } .lg.warn { background: var(--amber); } .lg.bad { background: var(--red); }
+
+@media (max-width: 1180px) {
+  .gm-grid { grid-template-columns: 1fr; }
+}

@@ -446,40 +446,71 @@
         <div class="view-header">
           <div>
             <h1>Modo Juego Automático</h1>
-            <p>Perfiles inteligentes que se activan al detectar un juego en ejecución.</p>
+            <p>Detecta tus juegos, activa Alto Rendimiento, sube su prioridad y restaura todo al cerrarlos.</p>
           </div>
-          <span class="phase-pill">Listo para Fase 4</span>
+          <div class="gm-badge off" id="gmBadge">
+            <span class="pulse-dot"></span>
+            <span id="gmBadgeText">VIGILANCIA APAGADA</span>
+          </div>
         </div>
 
-        <div class="profile-grid">
-          <button class="card glow-card profile-card active" data-profile="Competitivo FPS">
-            <span class="card-tag cyan">PERFIL ACTIVO</span>
-            <h3>Competitivo FPS</h3>
-            <p>Máxima prioridad de CPU, energía al 100% y mínima latencia de entrada.</p>
-          </button>
-          <button class="card glow-card profile-card" data-profile="Balanceado">
-            <span class="card-tag emerald">EQUILIBRIO</span>
-            <h3>Balanceado</h3>
-            <p>Buen rendimiento sostenido controlando temperaturas y ruido de ventiladores.</p>
-          </button>
-          <button class="card glow-card profile-card" data-profile="Silencioso">
-            <span class="card-tag violet">BAJO RUIDO</span>
-            <h3>Silencioso</h3>
-            <p>Ideal para juegos indie o sesiones nocturnas con consumo moderado.</p>
-          </button>
-        </div>
-
-        <article class="card glow-card games-table-card">
-          <div class="panel-head">
-            <div>
-              <h2 class="panel-title">Biblioteca Detectada</h2>
-              <p class="panel-sub">En Fase 4 se escanearán Steam, Epic, Xbox y procesos activos automáticamente</p>
-            </div>
+        <article class="card glow-card gm-master">
+          <div class="gm-master-info">
+            <h3>Vigilancia Automática de Juegos</h3>
+            <p>Revisa cada 3 segundos si se inició un juego de tu lista. Es 100% reversible: al cerrar el juego se restaura el plan de energía original.</p>
           </div>
-          <div class="empty-games mono">
-            [ Sin juegos escaneados todavía · Motor de detección programado para Fase 4 ]
-          </div>
+          <label class="switch big"><input type="checkbox" id="gmToggle" /><span></span></label>
         </article>
+
+        <article class="card glow-card gm-session" id="gmSession" hidden>
+          <div class="gm-session-main">
+            <div class="gm-session-cap">SESIÓN EN CURSO</div>
+            <div class="gm-session-game" id="gmSessionGame">—</div>
+            <div class="gm-session-meta mono" id="gmSessionMeta">—</div>
+          </div>
+          <div class="gm-session-timer mono" id="gmSessionTimer">0s</div>
+        </article>
+
+        <div class="gm-grid">
+          <article class="card glow-card gm-games-card">
+            <div class="panel-head">
+              <div>
+                <h2 class="panel-title">Juegos Configurados</h2>
+                <p class="panel-sub">Guardados en %APPDATA%\PulseCore\games.json</p>
+              </div>
+              <span class="mini-tag mono" id="gmCount">0 juegos</span>
+            </div>
+
+            <div class="games-list" id="gmGames">
+              <div class="empty-inline mono">Cargando lista…</div>
+            </div>
+
+            <form class="add-game" id="gmAddForm" autocomplete="off">
+              <input class="gm-input" id="gmName" type="text" maxlength="40" placeholder="Nombre (ej. Counter-Strike 2)" />
+              <input class="gm-input mono" id="gmProc" type="text" maxlength="100" placeholder="Ejecutable (ej. cs2.exe)" />
+              <button class="action-btn primary" type="submit">Agregar</button>
+            </form>
+          </article>
+
+          <article class="card glow-card gm-ping-card">
+            <div class="panel-head">
+              <div>
+                <h2 class="panel-title">Monitor de Ping &amp; Jitter</h2>
+                <p class="panel-sub">Ráfaga de 4 muestras por servidor</p>
+              </div>
+              <button class="action-btn primary" id="btnPing">
+                <span class="btn-spin"></span>
+                <span id="btnPingLabel">⚡ Medir Latencia</span>
+              </button>
+            </div>
+            <div class="ping-grid" id="pingGrid"></div>
+            <div class="ping-legend mono">
+              <span><i class="lg good"></i>&lt; 45 ms</span>
+              <span><i class="lg warn"></i>45–90 ms</span>
+              <span><i class="lg bad"></i>&gt; 90 ms</span>
+            </div>
+          </article>
+        </div>
       </section>
 
       <!-- ==================== VISTA 5: LOGS ==================== -->
@@ -487,22 +518,29 @@
         <div class="view-header">
           <div>
             <h1>Consola de Eventos</h1>
-            <p>Registro en tiempo real del puente WebView2, sensores y estado del sistema.</p>
+            <p>Registro en tiempo real del puente WebView2, sensores, acciones y modo juego.</p>
           </div>
-          <div class="log-toolbar">
-            <div class="filter-group" id="logFilters">
-              <button class="filter-btn active" data-filter="ALL">ALL</button>
-              <button class="filter-btn" data-filter="SYS">SYS</button>
-              <button class="filter-btn" data-filter="TEL">TEL</button>
-              <button class="filter-btn" data-filter="BOOST">BOOST</button>
-              <button class="filter-btn" data-filter="POWER">POWER</button>
-              <button class="filter-btn" data-filter="CLEAN">CLEAN</button>
-              <button class="filter-btn" data-filter="INFO">INFO</button>
-              <button class="filter-btn" data-filter="WARN">WARN</button>
-              <button class="filter-btn" data-filter="ERR">ERR</button>
-            </div>
+          <div class="head-actions">
+            <button class="action-btn" id="btnExportLogs">
+              <span class="btn-spin"></span>
+              <span id="btnExportLabel">Exportar Diagnóstico (.json)</span>
+            </button>
             <button class="action-btn small" id="btnClearLogs">Limpiar</button>
           </div>
+        </div>
+
+        <div class="filter-group wide" id="logFilters">
+          <button class="filter-btn active" data-filter="ALL">TODOS</button>
+          <button class="filter-btn" data-filter="GAME">GAME</button>
+          <button class="filter-btn" data-filter="BOOST">BOOST</button>
+          <button class="filter-btn" data-filter="CLEAN">CLEAN</button>
+          <button class="filter-btn" data-filter="POWER">POWER</button>
+          <button class="filter-btn" data-filter="INFO">INFO</button>
+          <span class="filter-sep"></span>
+          <button class="filter-btn" data-filter="SYS">SYS</button>
+          <button class="filter-btn" data-filter="TEL">TEL</button>
+          <button class="filter-btn" data-filter="WARN">WARN</button>
+          <button class="filter-btn" data-filter="ERR">ERR</button>
         </div>
 
         <article class="card terminal-card">
@@ -514,5 +552,6 @@
 
   <script src="app.js"></script>
   <script src="features.js"></script>
+  <script src="gamemode.js"></script>
 </body>
 </html>
