@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Media.Imaging;
 using Microsoft.Web.WebView2.Core;
 using PulseCore.App.Models;
 using PulseCore.App.Services;
@@ -36,6 +37,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        Icon = BitmapFrame.Create(new Uri("pack://application:,,,/Assets/pulsecore.ico", UriKind.Absolute));
         _gameMode = new GameModeService(_power, _memory);
         _gameMode.Event += (type, payload) => Dispatcher.InvokeAsync(() => Send(type, payload));
         StateChanged += (_, _) => OnWindowStateChanged();
