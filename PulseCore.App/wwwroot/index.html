@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PulseCore</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="titlebar" id="titlebar">
+    <div class="brand"><span class="dot"></span>PulseCore</div>
+    <div class="drag-area" id="dragArea"></div>
+    <div class="controls">
+      <button class="ctl" id="btnMin" title="Minimizar" aria-label="Minimizar">
+        <svg width="10" height="10" viewBox="0 0 10 10"><path d="M0 5h10" stroke="currentColor" fill="none"/></svg>
+      </button>
+      <button class="ctl" id="btnMax" title="Maximizar" aria-label="Maximizar">
+        <svg id="iconMax" width="10" height="10" viewBox="0 0 10 10"><rect x="0.5" y="0.5" width="9" height="9" stroke="currentColor" fill="none"/></svg>
+        <svg id="iconRestore" width="10" height="10" viewBox="0 0 10 10" style="display:none"><path d="M2.5 2.5v-2h7v7h-2M0.5 2.5h7v7h-7z" stroke="currentColor" fill="none"/></svg>
+      </button>
+      <button class="ctl close" id="btnClose" title="Cerrar" aria-label="Cerrar">
+        <svg width="10" height="10" viewBox="0 0 10 10"><path d="M0 0l10 10M10 0L0 10" stroke="currentColor" fill="none"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="content">
+    <section class="card">
+      <h1>PulseCore</h1>
+      <p class="subtitle">Fase 1 · Puente C# ↔ JS</p>
+      <button class="btn" id="btnPing">Ping Backend C#</button>
+      <dl class="info" id="info" hidden>
+        <dt>Nombre de la PC</dt><dd id="infoMachine">—</dd>
+        <dt>Versión de Windows</dt><dd id="infoOs">—</dd>
+        <dt>Arquitectura</dt><dd id="infoArch">—</dd>
+        <dt>Núcleos lógicos</dt><dd id="infoCores">—</dd>
+      </dl>
+      <p class="status" id="status">Esperando ping…</p>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
