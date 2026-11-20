@@ -1340,3 +1340,58 @@ html, body {
 @media (max-width: 1180px) {
   .gm-grid { grid-template-columns: 1fr; }
 }
+
+/* ==================== FORTNITE PRO ==================== */
+#view-fortnite > * { flex-shrink: 0; }
+.log-lvl { width: 68px; }
+.log-lvl.FORTNITE { color: #f472b6; }
+
+.fn-warn {
+  padding: 10px 14px; border-radius: 11px; font-size: 12px; font-weight: 600;
+  color: var(--amber); background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.4);
+}
+.fn-warn[hidden] { display: none; }
+
+.fn-status { padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; }
+.fn-chips { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
+.fn-chip { padding: 10px 12px; border-radius: 11px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.fn-chip-label { font-size: 10px; color: var(--muted); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fn-chip-val { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fn-chip-val.ok { color: var(--emerald); }
+.fn-chip-val.warn { color: var(--amber); }
+.fn-chip-val.bad { color: var(--red); }
+.fn-path { font-size: 10.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; user-select: text; }
+
+.fn-controls { padding: 16px 20px; display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
+.fn-controls.disabled { opacity: 0.5; pointer-events: none; }
+.fn-ctl-block { display: flex; flex-direction: column; gap: 7px; }
+.fn-ctl-block.fn-ro { flex-direction: row; align-items: center; gap: 14px; flex: 1; min-width: 280px; }
+.fn-ctl-title { font-size: 12.5px; font-weight: 700; }
+.fn-ctl-sub { font-size: 11px; color: var(--muted); max-width: 360px; line-height: 1.4; margin-top: 2px; }
+
+.fn-presets { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.fn-preset { padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; transition: border-color 0.25s, box-shadow 0.3s; }
+.fn-preset[data-accent="competitive"].active { border-color: rgba(16, 185, 129, 0.55); box-shadow: 0 0 30px rgba(16, 185, 129, 0.16); }
+.fn-preset[data-accent="quality"].active { border-color: rgba(129, 140, 248, 0.6); box-shadow: 0 0 30px rgba(129, 140, 248, 0.18); }
+.fn-preset h3 { margin: 0; font-size: 16px; }
+.fn-preset-top { display: flex; align-items: center; justify-content: space-between; }
+.fn-active-tag { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; color: var(--emerald); }
+.fn-active-tag[hidden] { display: none; }
+.fn-list { margin: 0; padding-left: 18px; font-size: 12px; color: var(--text-dim); line-height: 1.7; flex: 1; }
+.fn-preset .action-btn { align-self: flex-start; }
+.action-btn.primary.violet { border-color: rgba(129, 140, 248, 0.55); background: linear-gradient(135deg, rgba(129, 140, 248, 0.3), rgba(56, 189, 248, 0.16)); }
+.action-btn.primary.violet:hover:not(:disabled) { background: linear-gradient(135deg, rgba(129, 140, 248, 0.45), rgba(56, 189, 248, 0.26)); }
+
+.fn-clean { padding: 18px 20px; display: flex; flex-direction: column; gap: 8px; }
+.fn-clean-rows { display: flex; flex-direction: column; gap: 8px; margin-bottom: 6px; }
+.fn-clean-row { display: flex; align-items: center; gap: 14px; padding: 11px 14px; border-radius: 12px; background: rgba(255, 255, 255, 0.025); border: 1px solid var(--border); cursor: pointer; transition: border-color 0.18s; }
+.fn-clean-row:hover { border-color: var(--border-strong); }
+.fn-clean-info { flex: 1; min-width: 0; }
+.fn-clean-name { font-size: 13px; font-weight: 600; }
+.fn-clean-hint { font-size: 11px; color: var(--muted); }
+.fn-clean-size { text-align: right; }
+.fn-size-val { font-size: 18px; font-weight: 700; }
+.fn-size-files { font-size: 10.5px; color: var(--muted); }
+.fn-clean .action-btn { align-self: flex-start; }
+
+@media (max-width: 1180px) { .fn-chips { grid-template-columns: repeat(3, minmax(0, 1fr)); } }

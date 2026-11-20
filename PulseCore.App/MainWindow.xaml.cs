@@ -29,6 +29,7 @@ public partial class MainWindow : Window
     private readonly ProcessMonitorService _processes = new();
     private readonly SemaphoreSlim _actionGate = new(1, 1);
     private readonly NetworkPingService _ping = new();
+    private readonly FortniteService _fortnite = new();
     private readonly GameModeService _gameMode;
     private volatile TelemetrySnapshot? _lastSnapshot;
 
@@ -184,6 +185,31 @@ public partial class MainWindow : Window
             case "window.close":
                 Close();
                 break;
+            case "get_fortnite_status":
+                _ = RunActionAsync("get_fortnite_status", "fortnite_status", false,
+                    () => Task.FromResult<object>(_fortnite.GetStatus()));
+                break;
+            case "apply_fortnite_preset":
+            {
+                var preset = PayloadString(payload, "preset");
+                var fps = PayloadInt(payload, "fpsLimit");
+                var ro = PayloadBool(payload, "setReadOnly");
+                _ = RunActionAsync("apply_fortnite_preset", "fortnite_preset_result", true,
+                    () => Task.FromResult<object>(_fortnite.ApplyPreset(preset, fps, ro)));
+                break;
+            }
+            case "restore_fortnite_backup":
+                _ = RunActionAsync("restore_fortnite_backup", "fortnite_restore_result", true,
+                    () => Task.FromResult<object>(_fortnite.RestoreBackup()));
+                break;
+            case "clean_fortnite_files":
+            {
+                var demos = PayloadBool(payload, "cleanDemos");
+                var logs = PayloadBool(payload, "cleanLogs");
+                _ = RunActionAsync("clean_fortnite_files", "fortnite_clean_result", true,
+                    () => Task.FromResult<object>(_fortnite.CleanFortniteFiles(demos, logs)));
+                break;
+            }
             case "get_game_mode_state":
                 _ = RunActionAsync("get_game_mode_state", "game_mode_state", false,
                     () => Task.FromResult<object>(GameReply(true, null)));
@@ -282,6 +308,12 @@ public partial class MainWindow : Window
     private static bool PayloadBool(JsonElement? p, string name) =>
         p is { ValueKind: JsonValueKind.Object } el
         && el.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.True;
+
+    private static int PayloadInt(JsonElement? p, string name) =>
+        p is { ValueKind: JsonValueKind.Object } el
+        && el.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Number && v.TryGetInt32(out var i)
+            ? i
+            : -1;
 
     private object GameReply(bool ok, string? message) =>
         new { success = ok, message, state = _gameMode.GetState() };

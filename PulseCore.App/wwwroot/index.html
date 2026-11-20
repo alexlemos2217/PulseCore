@@ -107,6 +107,13 @@
           <span>Modo Juego</span>
         </button>
 
+        <button class="nav-item" data-view="fortnite">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="2" />
+            <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
+          </svg>
+          <span>Fortnite Pro</span>
+        </button>
         <div class="nav-section-label">SISTEMA</div>
         <button class="nav-item" data-view="logs">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -513,6 +520,121 @@
         </div>
       </section>
 
+      <!-- ==================== VISTA: FORTNITE PRO ==================== -->
+      <section class="view" id="view-fortnite">
+        <div class="view-header">
+          <div>
+            <h1>Fortnite Pro</h1>
+            <p>Presets competitivos sobre tu GameUserSettings.ini con backup automático. No toca el juego ni su memoria.</p>
+          </div>
+          <div class="gm-badge off" id="fnBadge">
+            <span class="pulse-dot"></span>
+            <span id="fnBadgeText">COMPROBANDO…</span>
+          </div>
+        </div>
+
+        <div class="fn-warn" id="fnWarn" hidden>
+          Fortnite está abierto. Cerralo antes de aplicar un preset: el juego sobrescribe el .ini al salir.
+        </div>
+
+        <!-- ESTADO -->
+        <article class="card glow-card fn-status">
+          <div class="fn-chips">
+            <div class="fn-chip"><span class="fn-chip-label">GameUserSettings.ini</span><span class="fn-chip-val mono" id="fnChipIni">—</span></div>
+            <div class="fn-chip"><span class="fn-chip-label">Backup original</span><span class="fn-chip-val mono" id="fnChipBackup">—</span></div>
+            <div class="fn-chip"><span class="fn-chip-label">FPS Cap</span><span class="fn-chip-val mono" id="fnChipFps">—</span></div>
+            <div class="fn-chip"><span class="fn-chip-label">VSync</span><span class="fn-chip-val mono" id="fnChipVsync">—</span></div>
+            <div class="fn-chip"><span class="fn-chip-label">Sombras</span><span class="fn-chip-val mono" id="fnChipShadow">—</span></div>
+            <div class="fn-chip"><span class="fn-chip-label">Solo Lectura</span><span class="fn-chip-val mono" id="fnChipRo">—</span></div>
+          </div>
+          <div class="fn-path mono" id="fnPath">—</div>
+        </article>
+
+        <!-- CONTROLES -->
+        <article class="card glow-card fn-controls" id="fnControls">
+          <div class="fn-ctl-block">
+            <div class="fn-ctl-title">Límite de FPS</div>
+            <div class="mode-switch" id="fnFps">
+              <button class="mode-btn" data-fps="144">144</button>
+              <button class="mode-btn" data-fps="165">165</button>
+              <button class="mode-btn" data-fps="200">200</button>
+              <button class="mode-btn active" data-fps="240">240</button>
+              <button class="mode-btn" data-fps="0">Ilimitado</button>
+            </div>
+          </div>
+          <div class="fn-ctl-block fn-ro">
+            <div>
+              <div class="fn-ctl-title">Dejar el .ini en Solo Lectura</div>
+              <div class="fn-ctl-sub">Evita que el juego revierta los cambios. Para cambiar ajustes dentro del juego, desactivalo.</div>
+            </div>
+            <label class="switch"><input type="checkbox" id="fnReadOnly" /><span></span></label>
+          </div>
+          <button class="action-btn" id="btnFnRestore" disabled>
+            <span class="btn-spin"></span><span id="btnFnRestoreLabel">Restaurar Backup Original</span>
+          </button>
+        </article>
+
+        <!-- PRESETS -->
+        <div class="fn-presets">
+          <article class="card glow-card fn-preset" data-accent="competitive">
+            <div class="fn-preset-top">
+              <span class="card-tag emerald">COMPETITIVO FPS</span>
+              <span class="fn-active-tag mono" hidden>ACTIVO</span>
+            </div>
+            <h3>Máximos FPS, mínima latencia</h3>
+            <ul class="fn-list">
+              <li>Sin VSync, sin Motion Blur y sin pasto</li>
+              <li>Sombras, efectos, post-proceso y AA al mínimo</li>
+              <li>Distancia de dibujado media (2)</li>
+            </ul>
+            <button class="action-btn primary" data-preset="competitive">
+              <span class="btn-spin"></span><span class="fn-btn-label">Aplicar Competitivo</span>
+            </button>
+          </article>
+
+          <article class="card glow-card fn-preset" data-accent="quality">
+            <div class="fn-preset-top">
+              <span class="card-tag violet">CALIDAD VISUAL</span>
+              <span class="fn-active-tag mono" hidden>ACTIVO</span>
+            </div>
+            <h3>Más detalle sin sacrificar fluidez</h3>
+            <ul class="fn-list">
+              <li>Pasto activado; VSync y Motion Blur apagados</li>
+              <li>Sombras, efectos, post-proceso y AA en Alto (2)</li>
+              <li>Distancia de dibujado alta (3)</li>
+            </ul>
+            <button class="action-btn primary violet" data-preset="quality">
+              <span class="btn-spin"></span><span class="fn-btn-label">Aplicar Calidad</span>
+            </button>
+          </article>
+        </div>
+
+        <!-- LIMPIADOR -->
+        <article class="card glow-card fn-clean">
+          <div class="panel-head">
+            <div>
+              <h2 class="panel-title">Limpiador de Fortnite</h2>
+              <p class="panel-sub">Solo archivos desbloqueados de Saved\Demos, Crashes y Logs</p>
+            </div>
+          </div>
+          <div class="fn-clean-rows">
+            <label class="fn-clean-row">
+              <span class="chk"><input type="checkbox" id="fnCleanDemos" /><span class="chk-box"></span></span>
+              <div class="fn-clean-info"><div class="fn-clean-name">Replays</div><div class="fn-clean-hint">Irreversible: borra tus repeticiones guardadas</div></div>
+              <div class="fn-clean-size"><div class="mono fn-size-val" id="fnDemosSize">—</div><div class="mono fn-size-files" id="fnDemosFiles">—</div></div>
+            </label>
+            <label class="fn-clean-row">
+              <span class="chk"><input type="checkbox" id="fnCleanLogs" checked /><span class="chk-box"></span></span>
+              <div class="fn-clean-info"><div class="fn-clean-name">Crash Logs y Logs</div><div class="fn-clean-hint">Informes de errores y registros antiguos</div></div>
+              <div class="fn-clean-size"><div class="mono fn-size-val" id="fnLogsSize">—</div><div class="mono fn-size-files" id="fnLogsFiles">—</div></div>
+            </label>
+          </div>
+          <button class="action-btn primary" id="btnFnClean">
+            <span class="btn-spin"></span><span id="btnFnCleanLabel">Limpiar archivos de Fortnite</span>
+          </button>
+        </article>
+      </section>
+
       <!-- ==================== VISTA 5: LOGS ==================== -->
       <section class="view" id="view-logs">
         <div class="view-header">
@@ -532,6 +654,7 @@
         <div class="filter-group wide" id="logFilters">
           <button class="filter-btn active" data-filter="ALL">TODOS</button>
           <button class="filter-btn" data-filter="GAME">GAME</button>
+          <button class="filter-btn" data-filter="FORTNITE">FORTNITE</button>
           <button class="filter-btn" data-filter="BOOST">BOOST</button>
           <button class="filter-btn" data-filter="CLEAN">CLEAN</button>
           <button class="filter-btn" data-filter="POWER">POWER</button>
@@ -553,5 +676,6 @@
   <script src="app.js"></script>
   <script src="features.js"></script>
   <script src="gamemode.js"></script>
+  <script src="fortnite.js"></script>
 </body>
 </html>
