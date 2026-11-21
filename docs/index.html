@@ -1,463 +1,1513 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" class="dark scroll-smooth">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>PulseCore — Exprimí cada FPS. Sin romper Windows.</title>
-  <meta name="description" content="PulseCore es una suite gratuita y open-source para Windows 10/11: Mini-HUD con FPS y 1% Low sin inyección (ETW), Modo Juego automático, Fortnite Pro, DNS Benchmark, Speedtest y Debloat 100% reversible." />
-  <meta name="theme-color" content="#050608" />
-  <link rel="icon" href="favicon.ico" type="image/x-icon" />
+  <meta name="description" content="Telemetría de hardware en tiempo real, Mini-HUD con FPS y 1% Low vía ETW (0% inyección), Modo Juego automático y optimización 100% reversible para Windows 10 y 11." />
+  <link rel="icon" href="favicon.ico" />
+
+  <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            obsidian: '#05070b',
+            surface: '#0b0f18',
+            cyanGlow: '#00e5ff',
+            emeraldGlow: '#10b981',
+            indigoGlow: '#6366f1',
+          },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    /* Base & strict overflow hygiene */
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background-color: #05070b;
+      color: #f1f5f9;
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Custom Dark Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #05070b;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.22);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(0, 229, 255, 0.45);
+    }
+
+    /* Technical grid background masked radially in the Hero */
+    .hero-grid {
+      background-image:
+        linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+      background-size: 48px 48px;
+      mask-image: radial-gradient(ellipse 75% 65% at 50% 25%, #000 35%, transparent 100%);
+      -webkit-mask-image: radial-gradient(ellipse 75% 65% at 50% 25%, #000 35%, transparent 100%);
+    }
+
+    /* Ambient Glows */
+    .ambient-orb {
+      pointer-events: none;
+      filter: blur(110px);
+      will-change: transform, opacity;
+    }
+
+    /* Glassmorphism surface */
+    .glass-card {
+      background: rgba(13, 17, 26, 0.72);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    /* Spotlight tracking Bento Cards */
+    .bento-card {
+      position: relative;
+      background: rgba(13, 17, 26, 0.74);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 1.25rem;
+      overflow: hidden;
+      transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.35s ease, box-shadow 0.35s ease;
+    }
+
+    .bento-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: radial-gradient(
+        480px circle at var(--mx, 50%) var(--my, 50%),
+        rgba(0, 229, 255, 0.13),
+        rgba(16, 185, 129, 0.05) 35%,
+        transparent 70%
+      );
+      opacity: 0;
+      transition: opacity 0.35s ease;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .bento-card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(0, 229, 255, 0.28);
+      box-shadow: 0 20px 50px -20px rgba(0, 229, 255, 0.18);
+    }
+
+    .bento-card:hover::before {
+      opacity: 1;
+    }
+
+    .bento-card > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Primary Glowing CTA Button */
+    .btn-primary-glow {
+      position: relative;
+      background: linear-gradient(135deg, #00e5ff 0%, #10b981 100%);
+      color: #041016;
+      font-weight: 700;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      box-shadow: 0 0 28px -4px rgba(0, 229, 255, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+      transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease, filter 0.22s ease;
+    }
+
+    .btn-primary-glow:hover {
+      transform: translateY(-1.5px);
+      box-shadow: 0 0 38px -2px rgba(0, 229, 255, 0.65), 0 0 18px rgba(16, 185, 129, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+      filter: brightness(1.06);
+    }
+
+    .btn-primary-glow:active {
+      transform: translateY(0);
+    }
+
+    /* Secondary Glass Button */
+    .btn-glass {
+      background: rgba(15, 23, 42, 0.65);
+      color: #e2e8f0;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+    }
+
+    .btn-glass:hover {
+      background: rgba(30, 41, 59, 0.8);
+      border-color: rgba(0, 229, 255, 0.35);
+      color: #ffffff;
+      transform: translateY(-1px);
+    }
+
+    /* Segmented Mode Switch */
+    .mode-switch-btn {
+      background: transparent;
+      color: #94a3b8;
+      border: 1px solid transparent;
+      transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+      cursor: pointer;
+    }
+
+    .mode-switch-btn.active-normal {
+      background: rgba(30, 41, 59, 0.9);
+      color: #f8fafc;
+      border-color: rgba(255, 255, 255, 0.14);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+    }
+
+    .mode-switch-btn.active-boost {
+      background: linear-gradient(135deg, rgba(0, 229, 255, 0.2), rgba(16, 185, 129, 0.24));
+      color: #67e8f9;
+      border-color: rgba(0, 229, 255, 0.45);
+      box-shadow: 0 0 24px -4px rgba(0, 229, 255, 0.45);
+    }
+
+    /* SVG Gauge transition */
+    .gauge-arc {
+      transition: stroke-dashoffset 0.75s cubic-bezier(0.16, 1, 0.3, 1), stroke 0.5s ease;
+      transform: rotate(-90deg);
+      transform-origin: 55px 55px;
+    }
+
+    /* Scroll reveal animation */
+    .reveal {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Pulsing status dot */
+    @keyframes pulse-ring {
+      0% { transform: scale(0.85); opacity: 0.9; }
+      70% { transform: scale(2.1); opacity: 0; }
+      100% { transform: scale(2.1); opacity: 0; }
+    }
+    .pulse-dot::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 9999px;
+      background: #10b981;
+      animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+    }
+
+    /* FAQ Accordion smooth height */
+    .faq-content {
+      display: grid;
+      grid-template-rows: 0fr;
+      transition: grid-template-rows 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .faq-item[data-open="true"] .faq-content {
+      grid-template-rows: 1fr;
+    }
+    .faq-inner {
+      overflow: hidden;
+    }
+    .faq-chevron {
+      transition: transform 0.28s ease;
+    }
+    .faq-item[data-open="true"] .faq-chevron {
+      transform: rotate(180deg);
+    }
+
+    /* Highlighted Comparison Column */
+    .compare-highlight {
+      background: linear-gradient(180deg, rgba(0, 229, 255, 0.08) 0%, rgba(16, 185, 129, 0.04) 100%);
+      border-left: 1px solid rgba(0, 229, 255, 0.32);
+      border-right: 1px solid rgba(0, 229, 255, 0.32);
+    }
+  </style>
 </head>
-<body>
-  <!-- Atmósfera cinematográfica -->
-  <div class="ambient-bg" aria-hidden="true">
-    <div class="hero-grid-mask"></div>
-    <div class="aura aura-cyan"></div>
-    <div class="aura aura-emerald"></div>
-    <div class="aura aura-gold"></div>
+<body class="bg-obsidian text-slate-100 selection:bg-cyan-400/30 selection:text-cyan-100">
+
+  <!-- Ambient Background Glows -->
+  <div class="fixed inset-0 pointer-events-none overflow-hidden z-0" aria-hidden="true">
+    <div class="ambient-orb absolute -top-32 left-1/2 -translate-x-1/2 w-[720px] h-[360px] rounded-full bg-cyan-500/15"></div>
+    <div class="ambient-orb absolute top-[380px] -left-40 w-[440px] h-[440px] rounded-full bg-indigo-500/12"></div>
+    <div class="ambient-orb absolute top-[520px] -right-40 w-[460px] h-[460px] rounded-full bg-emerald-500/12"></div>
   </div>
 
-  <!-- ========== NAVBAR FIJA ========== -->
-  <header class="navbar">
-    <div class="container nav-inner">
-      <a class="brand" href="#top" aria-label="PulseCore inicio">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <rect x="2" y="2" width="20" height="20" rx="6" stroke="url(#navGrad)" stroke-width="1.8" />
-          <path d="M5.5 12h3.2l2-4.8 2.8 9.6 2-4.8h3" stroke="url(#navGrad)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-          <defs>
-            <linearGradient id="navGrad" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
-              <stop stop-color="#38bdf8" />
-              <stop offset="1" stop-color="#818cf8" />
-            </linearGradient>
-          </defs>
-        </svg>
-        <span class="brand-name">PULSECORE</span>
-        <span class="ver-pill mono" data-version-badge>v1.8.0</span>
+  <!-- 1. STICKY FROSTED NAVBAR -->
+  <header class="sticky top-0 z-50 border-b border-white/[0.07] bg-obsidian/75 backdrop-blur-xl">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+      <!-- Brand Logo -->
+      <a href="#" class="flex items-center gap-2.5 group focus:outline-none">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-500/20 to-emerald-500/20 border border-cyan-400/30 flex items-center justify-center shadow-[0_0_20px_-5px_rgba(0,229,255,0.5)] group-hover:border-cyan-300/60 transition">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M2.5 12H6.5L9.2 5.2L13.6 18.8L16.8 10.5L18.5 12H21.5" stroke="url(#pulseLogoGrad)" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" />
+            <defs>
+              <linearGradient id="pulseLogoGrad" x1="2.5" y1="12" x2="21.5" y2="12" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#00e5ff" />
+                <stop offset="1" stop-color="#10b981" />
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <span class="font-extrabold tracking-[0.12em] text-sm sm:text-base text-white">PULSECORE</span>
+        <span class="js-version-badge font-mono text-[11px] font-semibold px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-300 border border-cyan-400/25">v1.8.0</span>
       </a>
 
-      <nav class="nav-links" aria-label="Navegación principal">
-        <a href="#funciones">Funciones</a>
-        <a href="#seguridad">Seguridad</a>
-        <a href="#faq">FAQ</a>
-        <a href="https://github.com/alexlemos2217/PulseCore" target="_blank" rel="noopener">GitHub</a>
+      <!-- Desktop Navigation -->
+      <nav class="hidden md:flex items-center gap-7 text-sm font-medium text-slate-400">
+        <a href="#funciones" class="hover:text-white transition-colors">Funciones</a>
+        <a href="#comparativa" class="hover:text-white transition-colors">Comparativa</a>
+        <a href="#seguridad" class="hover:text-white transition-colors">Seguridad</a>
+        <a href="#faq" class="hover:text-white transition-colors">FAQ</a>
+        <a href="https://github.com/alexlemos2217/PulseCore" target="_blank" rel="noopener noreferrer" class="hover:text-white transition-colors inline-flex items-center gap-1.5">
+          <span>GitHub</span>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7"/><path d="M7 7h10v10"/></svg>
+        </a>
       </nav>
 
-      <a class="btn btn-primary btn-sm" data-download-btn href="https://github.com/alexlemos2217/PulseCore/releases/latest">
-        ⬇ Descargar
-      </a>
+      <!-- CTA + Mobile Menu Button -->
+      <div class="flex items-center gap-2.5">
+        <a href="https://github.com/alexlemos2217/PulseCore/releases/latest" class="js-download-link btn-primary-glow inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span>Descargar</span>
+        </a>
+        <button id="mobileMenuBtn" type="button" aria-label="Abrir menú" class="md:hidden btn-glass p-2 rounded-xl text-slate-300">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile Dropdown -->
+    <div id="mobileMenu" class="hidden md:hidden border-t border-white/[0.07] bg-obsidian/95 backdrop-blur-xl px-4 py-4 space-y-2">
+      <a href="#funciones" class="mobile-nav-link block px-3 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white">Funciones</a>
+      <a href="#comparativa" class="mobile-nav-link block px-3 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white">Comparativa</a>
+      <a href="#seguridad" class="mobile-nav-link block px-3 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white">Seguridad</a>
+      <a href="#faq" class="mobile-nav-link block px-3 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white">FAQ</a>
+      <a href="https://github.com/alexlemos2217/PulseCore" target="_blank" rel="noopener noreferrer" class="block px-3 py-2.5 rounded-lg text-sm font-medium text-cyan-300 hover:bg-white/5">Código en GitHub →</a>
     </div>
   </header>
 
-  <main id="top">
-    <!-- ========== HERO INTERACTIVO ========== -->
-    <section class="hero">
-      <div class="container">
-        <div class="hero-top reveal">
-          <a class="release-pill mono" href="https://github.com/alexlemos2217/PulseCore/releases/latest" target="_blank" rel="noopener">
-            <span class="pulse-dot"></span>
-            <span id="releasePillText">v1.8.0 Disponible — Instalador Oficial Windows</span>
-          </a>
+  <main class="relative z-10">
+    <!-- 2. HERO SECTION -->
+    <section class="relative pt-14 pb-20 sm:pt-20 sm:pb-28 overflow-hidden">
+      <!-- Subtle Masked Technical Grid -->
+      <div class="hero-grid absolute inset-0 pointer-events-none" aria-hidden="true"></div>
 
-          <h1 class="hero-title">
-            Exprimí cada FPS.<br />
-            <span class="grad-text">Sin romper Windows.</span>
+      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Centered Copy -->
+        <div class="max-w-4xl mx-auto text-center">
+          <!-- Status Pill -->
+          <div class="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.1] backdrop-blur-md mb-7">
+            <span class="pulse-dot relative inline-block w-2 h-2 rounded-full bg-emerald-400"></span>
+            <span class="font-mono text-xs text-slate-200 tracking-tight">
+              <span class="js-version-badge font-semibold text-emerald-300">v1.8.0</span> Disponible — Instalador Oficial Windows 10/11
+            </span>
+          </div>
+
+          <!-- Monumental 2-Line Headline -->
+          <h1 class="text-4xl sm:text-6xl lg:text-[4.4rem] font-extrabold tracking-[-0.035em] leading-[1.06] mb-6">
+            <span class="block text-white">Exprimí cada FPS.</span>
+            <span class="block bg-gradient-to-r from-cyan-300 via-teal-300 to-emerald-400 bg-clip-text text-transparent">Sin romper Windows.</span>
           </h1>
 
-          <p class="hero-sub">
-            Telemetría de hardware en tiempo real, <strong>Mini-HUD con FPS y 1% Low vía ETW (0% inyección)</strong>, Modo Juego automático y optimización 100% reversible en una sola app nativa para Windows 10 y 11.
+          <!-- Subtitle -->
+          <p class="max-w-2xl mx-auto text-base sm:text-lg text-slate-400 leading-relaxed mb-9">
+            Telemetría de hardware en tiempo real, <span class="text-slate-200 font-medium">Mini-HUD con FPS y 1% Low vía ETW (0% inyección)</span>, Modo Juego automático y optimización 100% reversible en una sola app nativa.
           </p>
 
-          <div class="hero-ctas">
-            <a class="btn btn-primary btn-lg" data-download-btn href="https://github.com/alexlemos2217/PulseCore/releases/latest">
-              <span class="btn-beam" aria-hidden="true"></span>
-              <span id="heroDownloadLabel">⬇ Descargar PulseCore v1.8.0</span>
+          <!-- Action Row -->
+          <div class="flex flex-col sm:flex-row items-center justify-center gap-3.5 mb-14">
+            <a href="https://github.com/alexlemos2217/PulseCore/releases/latest" class="js-download-link btn-primary-glow w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl text-sm sm:text-base">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <span>Descargar PulseCore <span class="js-version-badge">v1.8.0</span></span>
+              <span class="js-file-size hidden font-mono text-xs px-2 py-0.5 rounded-md bg-black/20 text-slate-950 font-semibold"></span>
             </a>
-            <button class="btn btn-ghost btn-lg" id="btnOpenChangelog" type="button">
-              Ver Changelog
+
+            <button id="openChangelogBtn" type="button" class="btn-glass w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl text-sm sm:text-base font-semibold cursor-pointer">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              <span>Ver Changelog</span>
             </button>
-            <a class="btn btn-link btn-lg" href="https://github.com/alexlemos2217/PulseCore" target="_blank" rel="noopener">
-              Código en GitHub →
+
+            <a href="https://github.com/alexlemos2217/PulseCore" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-slate-300 hover:text-cyan-300 transition-colors">
+              <span>Código en GitHub</span>
+              <span aria-hidden="true">→</span>
             </a>
           </div>
         </div>
 
-        <!-- ESCAPARATE VISUAL INTERACTIVO -->
-        <div class="showcase-wrap reveal">
-          <div class="showcase-toolbar">
-            <!-- Switch Simulador -->
-            <div class="sim-switch" role="group" aria-label="Simulador de rendimiento">
-              <button class="sim-btn active" id="btnSimNormal" data-sim="normal" type="button">Modo Normal</button>
-              <button class="sim-btn boost" id="btnSimBoost" data-sim="boost" type="button">⚡ Simular PulseCore Boost</button>
-            </div>
-
-            <!-- Tab alternar Vista Interactiva / Captura Real (visible si existe PNG) -->
-            <div class="sim-switch" id="viewModeTabs" hidden>
-              <button class="sim-btn active" data-stage="interactive" type="button">Vista Interactiva</button>
-              <button class="sim-btn" data-stage="screenshot" type="button">Captura Real</button>
+        <!-- INTERACTIVE APP SHOWCASE -->
+        <div class="max-w-5xl mx-auto">
+          <!-- Segmented Switch -->
+          <div class="flex justify-center mb-5">
+            <div class="inline-flex items-center p-1.5 rounded-2xl bg-slate-950/90 border border-white/[0.09] shadow-xl" role="tablist" aria-label="Simulador de modo PulseCore">
+              <button id="btnModeNormal" type="button" role="tab" aria-selected="true" class="mode-switch-btn active-normal px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                <span>Modo Normal</span>
+              </button>
+              <button id="btnModeBoost" type="button" role="tab" aria-selected="false" class="mode-switch-btn px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" class="text-cyan-300" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                <span>Activar PulseCore Boost</span>
+              </button>
             </div>
           </div>
 
-          <div class="showcase-stage">
-            <!-- MINI-HUD FLOTANTE SUPERPUESTO -->
-            <div class="floating-hud mono" id="simHud" aria-label="Mini-HUD flotante interactivo">
-              <span class="hud-dot"></span>
-              <span class="hud-fps" id="simHudFps">116 FPS</span>
-              <span class="hud-low" id="simHudLow">· 1% 71</span>
-              <span class="hud-sep"></span>
-              <span class="hud-k">CPU</span><span class="hud-cyan" id="simHudCpu">48%</span>
-              <span class="hud-sep"></span>
-              <span class="hud-k">GPU</span><span class="hud-em" id="simHudGpu">67°C</span>
-              <span class="hud-sep"></span>
-              <span class="hud-k">PING</span><span class="hud-em" id="simHudPing">34 ms</span>
-            </div>
-
-            <!-- MAQUETA FIEL DE PULSECORE -->
-            <div class="app-mock card spotlight-card" id="interactiveStage">
-              <div class="mock-titlebar">
-                <div class="mock-tb-left">
-                  <span class="mock-logo mono">PULSECORE</span>
-                  <span class="mock-live mono">● LIVE · ADMIN</span>
+          <!-- Realistic Frameless Windows App Mockup -->
+          <div id="appMockupFrame" class="relative rounded-2xl sm:rounded-3xl bg-[#090d16]/95 border border-white/[0.11] shadow-[0_30px_90px_-20px_rgba(0,0,0,0.9),0_0_50px_-20px_rgba(0,229,255,0.2)] overflow-hidden transition-all duration-500">
+            <!-- Window Top Title Bar -->
+            <div class="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 py-3.5 border-b border-white/[0.07] bg-black/40">
+              <div class="flex items-center gap-3">
+                <div class="flex items-center gap-1.5">
+                  <span class="w-2.5 h-2.5 rounded-full bg-slate-700"></span>
+                  <span class="w-2.5 h-2.5 rounded-full bg-slate-700"></span>
+                  <span class="w-2.5 h-2.5 rounded-full bg-slate-700"></span>
                 </div>
-                <div class="mock-tb-right mono">
-                  <span class="mock-prof" id="simProfileTag">💼 Modo Normal</span>
-                  <span class="mock-win-dots"><i></i><i></i><i></i></span>
+                <div class="h-4 w-px bg-white/10 hidden sm:block"></div>
+                <div class="flex items-center gap-2 font-mono text-[11px] sm:text-xs text-slate-300">
+                  <span class="font-bold text-white tracking-wider">PULSECORE</span>
+                  <span class="js-version-badge text-cyan-400">v1.8.0</span>
+                  <span class="text-slate-600">·</span>
+                  <span class="px-1.5 py-0.5 rounded bg-indigo-500/15 text-indigo-300 border border-indigo-400/25 text-[10px]">ADMIN</span>
+                  <span class="text-slate-600">·</span>
+                  <span class="inline-flex items-center gap-1 text-emerald-400"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>LIVE</span>
                 </div>
               </div>
 
-              <div class="mock-body">
-                <!-- 4 Tacómetros 240° SVG reales -->
-                <div class="sim-gauges">
-                  <div class="sim-gauge-card">
-                    <div class="sg-head"><span class="sg-tag cyan">CPU</span><span class="sg-pill mono" id="sgCpuTemp">66 °C</span></div>
-                    <div class="sg-ring-wrap">
-                      <svg viewBox="0 0 120 100"><circle class="sg-track" cx="60" cy="56" r="40" transform="rotate(150 60 56)" /><circle class="sg-arc cyan" id="sgCpuArc" cx="60" cy="56" r="40" transform="rotate(150 60 56)" /></svg>
-                      <div class="sg-center mono"><strong id="sgCpuVal">48%</strong><span>USO</span></div>
-                    </div>
-                    <div class="sg-foot mono" id="sgCpuSub">4.3 GHz · Equilibrado</div>
-                  </div>
-
-                  <div class="sim-gauge-card">
-                    <div class="sg-head"><span class="sg-tag em">GPU</span><span class="sg-pill mono" id="sgGpuTemp">67 °C</span></div>
-                    <div class="sg-ring-wrap">
-                      <svg viewBox="0 0 120 100"><circle class="sg-track" cx="60" cy="56" r="40" transform="rotate(150 60 56)" /><circle class="sg-arc em" id="sgGpuArc" cx="60" cy="56" r="40" transform="rotate(150 60 56)" /></svg>
-                      <div class="sg-center mono"><strong id="sgGpuVal">78%</strong><span>CARGA</span></div>
-                    </div>
-                    <div class="sg-foot mono" id="sgGpuSub">VRAM 5.4 / 8 GB</div>
-                  </div>
-
-                  <div class="sim-gauge-card">
-                    <div class="sg-head"><span class="sg-tag vio">RAM</span><span class="sg-pill mono" id="sgRamPill">Moderada</span></div>
-                    <div class="sg-ring-wrap">
-                      <svg viewBox="0 0 120 100"><circle class="sg-track" cx="60" cy="56" r="40" transform="rotate(150 60 56)" /><circle class="sg-arc vio" id="sgRamArc" cx="60" cy="56" r="40" transform="rotate(150 60 56)" /></svg>
-                      <div class="sg-center mono"><strong id="sgRamVal">71%</strong><span>FÍSICA</span></div>
-                    </div>
-                    <div class="sg-foot mono" id="sgRamSub">11.4 / 16 GB</div>
-                  </div>
-
-                  <div class="sim-gauge-card">
-                    <div class="sg-head"><span class="sg-tag amb">SSD C:</span><span class="sg-pill mono" id="sgDiskPill">Limpio</span></div>
-                    <div class="sg-ring-wrap">
-                      <svg viewBox="0 0 120 100"><circle class="sg-track" cx="60" cy="56" r="40" transform="rotate(150 60 56)" /><circle class="sg-arc amb" id="sgDiskArc" cx="60" cy="56" r="40" transform="rotate(150 60 56)" /></svg>
-                      <div class="sg-center mono"><strong id="sgDiskVal">62%</strong><span>USADO</span></div>
-                    </div>
-                    <div class="sg-foot mono" id="sgDiskSub">184 GB libres</div>
-                  </div>
-                </div>
-
-                <!-- Gráfico en tiempo real + Gaming Readiness -->
-                <div class="sim-lower">
-                  <div class="sim-chart-box">
-                    <div class="sim-chart-head">
-                      <span class="mono">ESTABILIDAD DE FRAMES &amp; LATENCIA (EN VIVO)</span>
-                      <span class="sim-delta mono" id="simDelta">Modo Normal · Sin optimizar</span>
-                    </div>
-                    <div class="sim-canvas-wrap">
-                      <canvas id="simChart"></canvas>
-                    </div>
-                  </div>
-
-                  <div class="sim-ready-box">
-                    <span class="mono sg-muted">GAMING READINESS</span>
-                    <div class="sim-score-row">
-                      <span class="sim-score mono" id="simScore">72</span>
-                      <span class="sim-score-badge" id="simScoreBadge">Carga moderada</span>
-                    </div>
-                    <div class="sim-leds" id="simLeds"></div>
-                    <div class="sim-ready-hint mono" id="simHint">Probá activar ⚡ Simular PulseCore Boost arriba</div>
-                  </div>
-                </div>
+              <!-- Active Mode Status Pill -->
+              <div id="mockupModeBadge" class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] sm:text-xs font-mono font-semibold bg-amber-500/10 text-amber-300 border border-amber-400/25 transition-all duration-300">
+                <span id="mockupModeDot" class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                <span id="mockupModeText">Modo Normal — Plan Equilibrado</span>
               </div>
             </div>
 
-            <!-- CAPTURA REAL (se muestra si el usuario alterna a "Captura Real") -->
-            <div class="app-mock card" id="screenshotStage" hidden>
-              <img
-                id="realScreenshot"
-                src="assets/screenshot-dashboard.png"
-                alt="Captura real del Dashboard de PulseCore"
-                class="real-shot-img"
-              />
+            <!-- App Content Area -->
+            <div class="p-4 sm:p-6 lg:p-7 space-y-5">
+              <!-- Top Row: Floating Mini-HUD Pill + Quick Delta Info -->
+              <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div>
+                  <div class="text-xs font-mono uppercase tracking-widest text-slate-500 mb-1">Telemetría en Vivo · ETW Sin Inyección</div>
+                  <div class="text-sm sm:text-base font-semibold text-slate-200 flex items-center gap-2">
+                    <span>Sesión detectada:</span>
+                    <span class="px-2 py-0.5 rounded-md bg-white/[0.06] border border-white/[0.08] font-mono text-xs text-cyan-300">FortniteClient-Win64-Shipping.exe</span>
+                  </div>
+                </div>
+
+                <!-- Floating Mini-HUD Glass Pill -->
+                <div id="heroMiniHud" class="inline-flex flex-wrap items-center gap-x-3.5 gap-y-1.5 px-4 py-2.5 rounded-2xl bg-black/75 backdrop-blur-xl border border-white/[0.14] shadow-[0_12px_32px_rgba(0,0,0,0.65)] font-mono text-xs transition-all duration-300">
+                  <span class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold pr-1 border-r border-white/10">MINI-HUD</span>
+                  <span class="flex items-baseline gap-1">
+                    <strong id="hudFps" class="text-sm sm:text-base font-bold text-amber-300">116</strong>
+                    <span class="text-[10px] text-slate-400">FPS</span>
+                  </span>
+                  <span class="text-slate-700">·</span>
+                  <span class="flex items-baseline gap-1">
+                    <span class="text-[10px] text-slate-400">1% LOW</span>
+                    <strong id="hudLow" class="text-xs sm:text-sm font-bold text-amber-200">71</strong>
+                  </span>
+                  <span class="text-slate-700">·</span>
+                  <span class="flex items-baseline gap-1">
+                    <span class="text-[10px] text-slate-400">CPU</span>
+                    <strong id="hudCpu" class="text-xs text-slate-200">58%</strong>
+                  </span>
+                  <span class="text-slate-700">·</span>
+                  <span class="flex items-baseline gap-1">
+                    <span class="text-[10px] text-slate-400">GPU</span>
+                    <strong id="hudGpu" class="text-xs text-slate-200">67°C</strong>
+                  </span>
+                  <span class="text-slate-700">·</span>
+                  <span class="flex items-baseline gap-1">
+                    <span class="text-[10px] text-slate-400">PING</span>
+                    <strong id="hudPing" class="text-xs text-amber-300">34ms</strong>
+                  </span>
+                </div>
+              </div>
+
+              <!-- 4 Circular Animated SVG Gauges -->
+              <div class="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
+                <!-- Gauge 1: CPU -->
+                <div class="rounded-2xl bg-white/[0.025] border border-white/[0.06] p-4 flex flex-col items-center justify-center">
+                  <div class="relative w-[110px] h-[110px] flex items-center justify-center">
+                    <svg width="110" height="110" viewBox="0 0 110 110" aria-hidden="true">
+                      <circle cx="55" cy="55" r="44" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="8" />
+                      <circle id="gaugeCpuArc" class="gauge-arc" cx="55" cy="55" r="44" fill="none" stroke="#f59e0b" stroke-width="8" stroke-linecap="round" stroke-dasharray="276.46" stroke-dashoffset="116" />
+                    </svg>
+                    <div class="absolute inset-0 flex flex-col items-center justify-center">
+                      <span id="gaugeCpuVal" class="font-mono text-xl font-bold text-white">58%</span>
+                      <span id="gaugeCpuSub" class="font-mono text-[10px] text-slate-400">66 °C</span>
+                    </div>
+                  </div>
+                  <span class="mt-2 text-xs font-semibold text-slate-300">CPU Carga</span>
+                </div>
+
+                <!-- Gauge 2: GPU -->
+                <div class="rounded-2xl bg-white/[0.025] border border-white/[0.06] p-4 flex flex-col items-center justify-center">
+                  <div class="relative w-[110px] h-[110px] flex items-center justify-center">
+                    <svg width="110" height="110" viewBox="0 0 110 110" aria-hidden="true">
+                      <circle cx="55" cy="55" r="44" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="8" />
+                      <circle id="gaugeGpuArc" class="gauge-arc" cx="55" cy="55" r="44" fill="none" stroke="#f59e0b" stroke-width="8" stroke-linecap="round" stroke-dasharray="276.46" stroke-dashoffset="91" />
+                    </svg>
+                    <div class="absolute inset-0 flex flex-col items-center justify-center">
+                      <span id="gaugeGpuVal" class="font-mono text-xl font-bold text-white">67°C</span>
+                      <span id="gaugeGpuSub" class="font-mono text-[10px] text-slate-400">79% GPU</span>
+                    </div>
+                  </div>
+                  <span class="mt-2 text-xs font-semibold text-slate-300">GPU Térmica</span>
+                </div>
+
+                <!-- Gauge 3: RAM -->
+                <div class="rounded-2xl bg-white/[0.025] border border-white/[0.06] p-4 flex flex-col items-center justify-center">
+                  <div class="relative w-[110px] h-[110px] flex items-center justify-center">
+                    <svg width="110" height="110" viewBox="0 0 110 110" aria-hidden="true">
+                      <circle cx="55" cy="55" r="44" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="8" />
+                      <circle id="gaugeRamArc" class="gauge-arc" cx="55" cy="55" r="44" fill="none" stroke="#fb7185" stroke-width="8" stroke-linecap="round" stroke-dasharray="276.46" stroke-dashoffset="72" />
+                    </svg>
+                    <div class="absolute inset-0 flex flex-col items-center justify-center">
+                      <span id="gaugeRamVal" class="font-mono text-xl font-bold text-white">74%</span>
+                      <span id="gaugeRamSub" class="font-mono text-[10px] text-slate-400">11.8 / 16 GB</span>
+                    </div>
+                  </div>
+                  <span class="mt-2 text-xs font-semibold text-slate-300">RAM en Uso</span>
+                </div>
+
+                <!-- Gauge 4: Ping & Jitter -->
+                <div class="rounded-2xl bg-white/[0.025] border border-white/[0.06] p-4 flex flex-col items-center justify-center">
+                  <div class="relative w-[110px] h-[110px] flex items-center justify-center">
+                    <svg width="110" height="110" viewBox="0 0 110 110" aria-hidden="true">
+                      <circle cx="55" cy="55" r="44" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="8" />
+                      <circle id="gaugePingArc" class="gauge-arc" cx="55" cy="55" r="44" fill="none" stroke="#f59e0b" stroke-width="8" stroke-linecap="round" stroke-dasharray="276.46" stroke-dashoffset="120" />
+                    </svg>
+                    <div class="absolute inset-0 flex flex-col items-center justify-center">
+                      <span id="gaugePingVal" class="font-mono text-xl font-bold text-white">34ms</span>
+                      <span id="gaugePingSub" class="font-mono text-[10px] text-slate-400">Jitter 8.4ms</span>
+                    </div>
+                  </div>
+                  <span class="mt-2 text-xs font-semibold text-slate-300">Latencia Red</span>
+                </div>
+              </div>
+
+              <!-- Live Animated FPS & Frametime Stability Graph -->
+              <div class="rounded-2xl bg-black/45 border border-white/[0.07] p-4 sm:p-5">
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                  <div class="flex items-center gap-2.5">
+                    <span class="text-xs font-semibold text-slate-200">Estabilidad de FPS &amp; Frametime (Tiempo Real)</span>
+                    <span id="graphStatusPill" class="font-mono text-[10px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-400/25">Micro-stuttering detectado</span>
+                  </div>
+                  <div class="flex items-center gap-4 font-mono text-[11px] text-slate-400">
+                    <span class="inline-flex items-center gap-1.5"><span id="graphLegendDot" class="w-2 h-2 rounded-full bg-amber-400"></span>FPS Promedio: <strong id="graphAvgFps" class="text-white">116</strong></span>
+                    <span class="inline-flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-indigo-400"></span>1% Low: <strong id="graphLowFps" class="text-white">71</strong></span>
+                  </div>
+                </div>
+                <div id="fpsCanvasContainer" class="relative w-full h-36 sm:h-44">
+                  <canvas id="fpsGraphCanvas" class="w-full h-full block rounded-lg"></canvas>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- ========== FRANJA DE AUTORIDAD Y COMPATIBILIDAD ========== -->
-    <section class="authority-strip">
-      <div class="container authority-inner mono">
-        <span>Windows 10 &amp; 11 (x64)</span>
-        <i>·</i>
-        <span>Steam &amp; Epic Auto-Detect</span>
-        <i>·</i>
-        <span>Seguro con EAC / Vanguard / BattlEye</span>
-        <i>·</i>
-        <span>ETW Nativo (0% Inyección)</span>
-        <i>·</i>
-        <span>Winget Integrado</span>
-        <i>·</i>
-        <span>Open Source Auditable</span>
-      </div>
-    </section>
-
-    <!-- ========== BENTO GRID CON MICRO-INTERFACES ========== -->
-    <section class="section" id="funciones">
-      <div class="container">
-        <div class="section-head reveal">
-          <span class="sec-kicker mono">INGENIERÍA NATIVA EN C# / .NET</span>
-          <h2>Todo lo que tu PC gamer necesita, en un solo lugar</h2>
-          <p>Sin bloatware, sin cuentas obligatorias y con interfaces diseñadas para responder al instante.</p>
-        </div>
-
-        <div class="bento-grid">
-          <!-- 1. Mini-HUD ETW -->
-          <article class="card spotlight-card bento-card span-2 reveal">
-            <div class="bento-head">
-              <span class="tag cyan mono">ETW PASIVO · 0% INYECCIÓN</span>
-              <span class="mono muted-sm">DXGI / D3D9</span>
-            </div>
-            <h3>Mini-HUD Flotante con FPS y 1% Low</h3>
-            <p>Ventana 100% XAML nativo con consumo despreciable. Lee frames reales y <strong>1% Low FPS</strong> vía ETW de solo lectura, con modo <em>Click-Through</em> para que nunca moleste en partida.</p>
-            <div class="micro-ui micro-hud mono">
-              <span class="hud-dot"></span>
-              <span class="hud-fps">144 FPS</span>
-              <span class="hud-low">· 1% 118</span>
-              <span class="hud-sep"></span>
-              <span class="hud-cyan">CPU 32%</span>
-              <span class="hud-sep"></span>
-              <span class="hud-em">GPU 58°C</span>
-              <span class="micro-chip">🔒 Click-Through</span>
-            </div>
-          </article>
-
-          <!-- 2. Modo Juego -->
-          <article class="card spotlight-card bento-card reveal">
-            <div class="bento-head">
-              <span class="tag em mono">STEAM &amp; EPIC</span>
-            </div>
-            <h3>Modo Juego Automático</h3>
-            <p>Autodetecta tu biblioteca con portadas reales, activa Alto Rendimiento al abrir un juego y muestra un <strong>Resumen Post-Partida</strong> al cerrarlo.</p>
-            <div class="micro-ui micro-game mono">
-              <span class="mg-plat">EPIC</span>
-              <span class="mg-name">Fortnite</span>
-              <span class="mg-pill">⚡ Preparar y Jugar</span>
-            </div>
-          </article>
-
-          <!-- 3. Suite Windows -->
-          <article class="card spotlight-card bento-card reveal">
-            <div class="bento-head">
-              <span class="tag vio mono">100% REVERSIBLE</span>
-            </div>
-            <h3>Suite de Windows Segura</h3>
-            <p>Debloat por Registro sin romper Windows, Gestor de Inicio respaldado y consolas en vivo para <strong>SFC /scannow</strong> y <strong>DISM</strong>.</p>
-            <div class="micro-ui micro-toggles mono">
-              <div class="mt-row"><span>Telemetría Windows</span><i class="mt-sw on"></i></div>
-              <div class="mt-row"><span>Anuncios Menú Inicio</span><i class="mt-sw on"></i></div>
-              <div class="mt-row"><span>Xbox Game DVR</span><i class="mt-sw on"></i></div>
-            </div>
-          </article>
-
-          <!-- 4. Red Avanzada -->
-          <article class="card spotlight-card bento-card reveal">
-            <div class="bento-head">
-              <span class="tag cyan mono">LATENCIA REAL</span>
-            </div>
-            <h3>Red Avanzada &amp; Speedtest</h3>
-            <p><strong>DNS Switcher</strong> con Benchmark (Cloudflare, Google, Quad9, DHCP), test de <strong>Packet Loss</strong> (20 pings) y <strong>Speedtest</strong> integrado.</p>
-            <div class="micro-ui micro-net mono">
-              <div class="mn-bar"><span>Cloudflare 1.1.1.1</span><strong class="hud-em">11 ms</strong></div>
-              <div class="mn-bar"><span>Packet Loss (20p)</span><strong class="hud-cyan">0.0%</strong></div>
-            </div>
-          </article>
-
-          <!-- 5. Fortnite Pro -->
-          <article class="card spotlight-card bento-card reveal">
-            <div class="bento-head">
-              <span class="tag amb mono">BACKUP AUTO</span>
-            </div>
-            <h3>Fortnite Pro</h3>
-            <p>Presets seguros sobre <code>GameUserSettings.ini</code> con respaldo original intacto, límite de FPS y limpiador de Replays y Crash Logs.</p>
-            <div class="micro-ui micro-ini mono">
-              <span>bUseVSync=<b>False</b></span>
-              <span>sg.ShadowQuality=<b>0</b></span>
-              <span class="hud-em">✓ Backup original guardado</span>
-            </div>
-          </article>
-
-          <!-- 6. Apps Winget & Perfiles -->
-          <article class="card spotlight-card bento-card span-2 reveal">
-            <div class="bento-head">
-              <span class="tag em mono">WINGET + PERFILES 1-CLIC</span>
-              <span class="mono muted-sm">Recién formateado</span>
-            </div>
-            <h3>Buscador global de <code>winget</code>, Perfiles y Mantenimiento Semanal</h3>
-            <p>Instalá tu pack gamer en silencio, buscá cualquier app en todo el repositorio oficial de Windows, actualizá el PC entero con <code>upgrade --all</code> y alterná entre <strong>🎮 Competitivo</strong> y <strong>💼 Trabajo</strong> en 1 clic.</p>
-            <div class="micro-ui micro-term mono">
-              <span class="hud-cyan">$</span> winget install --id Discord.Discord --silent
-              <span class="micro-chip em">✓ Instalado</span>
-            </div>
-          </article>
+    <!-- 3. AUTHORITY & COMPATIBILITY STRIP -->
+    <section class="py-6 border-y border-white/[0.06] bg-white/[0.015]">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3.5">
+          <span class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl glass-card text-xs font-medium text-slate-300">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="8" height="8"/><rect x="13" y="3" width="8" height="8"/><rect x="3" y="13" width="8" height="8"/><rect x="13" y="13" width="8" height="8"/></svg>
+            Windows 10 &amp; 11 (x64)
+          </span>
+          <span class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl glass-card text-xs font-medium text-slate-300">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            0% Inyección · ETW Nativo
+          </span>
+          <span class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl glass-card text-xs font-medium text-slate-300">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            Seguro con EAC / Vanguard / BattlEye
+          </span>
+          <span class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl glass-card text-xs font-medium text-slate-300">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 12h4"/><path d="M8 10v4"/><circle cx="16.5" cy="10.5" r="1"/><circle cx="14.5" cy="13.5" r="1"/></svg>
+            Steam &amp; Epic Auto-Detect
+          </span>
+          <span class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl glass-card text-xs font-medium text-slate-300">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+            Winget Integrado
+          </span>
+          <span class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl glass-card text-xs font-medium text-slate-300">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+            Open Source Auditable
+          </span>
         </div>
       </div>
     </section>
 
-    <!-- ========== 100% SEGURO Y REVERSIBLE ========== -->
-    <section class="section" id="seguridad">
-      <div class="container">
-        <div class="section-head reveal">
-          <span class="sec-kicker mono">ARQUITECTURA AUDITABLE</span>
-          <h2>100% Seguro y Reversible</h2>
-          <p>Diseñado para jugadores exigentes que quieren rendimiento sin arriesgar su cuenta ni su instalación de Windows.</p>
+    <!-- 4. BENTO GRID (#funciones) -->
+    <section id="funciones" class="py-20 sm:py-28">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-3xl mx-auto text-center mb-14 reveal">
+          <span class="font-mono text-xs uppercase tracking-[0.2em] text-cyan-400 font-semibold">Suite Completa v1.8.0</span>
+          <h2 class="mt-3 text-3xl sm:text-5xl font-extrabold tracking-tight text-white">Todo lo que necesitás en una sola app nativa</h2>
+          <p class="mt-4 text-slate-400 text-base sm:text-lg">Diseñada en C# y WPF para consumir recursos mínimos mientras exprime tu hardware con total seguridad.</p>
         </div>
 
-        <div class="pillars-grid">
-          <article class="card spotlight-card pillar reveal">
-            <div class="pillar-num mono">01</div>
-            <h3>Código abierto auditable</h3>
-            <p>Todo el proyecto en C#, XAML y JS es público en GitHub. Podés inspeccionar cada servicio o compilar tu propio ejecutable.</p>
+        <div class="grid grid-cols-1 md:grid-cols-6 gap-5">
+          <!-- Card 1 (Wide - 4 cols): Mini-HUD sin inyección (ETW) -->
+          <article class="bento-card md:col-span-4 p-6 sm:p-7 flex flex-col justify-between reveal">
+            <div>
+              <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-cyan-500/10 border border-cyan-400/25 text-cyan-300 font-mono text-[11px] font-semibold mb-4">
+                <span>ETW NATIVO · 0% INYECCIÓN</span>
+              </div>
+              <h3 class="text-xl sm:text-2xl font-bold text-white mb-2">Mini-HUD sin inyección (ETW)</h3>
+              <p class="text-sm text-slate-400 leading-relaxed max-w-xl">Monitoreá tus FPS reales y tu <strong class="text-slate-200">1% Low FPS</strong> directo desde el trazado de eventos de Windows. Sin inyectar DLLs en el juego, 100% compatible con anti-cheats competitivos.</p>
+            </div>
+
+            <!-- Embedded Mini-HUD Preview -->
+            <div class="mt-6 p-4 rounded-2xl bg-black/55 border border-white/[0.08] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div class="inline-flex flex-wrap items-center gap-x-3 gap-y-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500/15 via-slate-900/90 to-emerald-500/15 border border-cyan-400/35 shadow-[0_0_25px_-6px_rgba(0,229,255,0.45)] font-mono text-xs">
+                <span class="font-bold text-emerald-300 text-sm">174 FPS</span>
+                <span class="text-slate-600">·</span>
+                <span class="text-cyan-200 font-semibold">1% 148</span>
+                <span class="text-slate-600">·</span>
+                <span class="text-slate-200">CPU 32%</span>
+                <span class="text-slate-600">·</span>
+                <span class="text-slate-200">GPU 57°C</span>
+                <span class="text-slate-600">·</span>
+                <span class="text-emerald-400 font-semibold">14 ms</span>
+              </div>
+              <span class="font-mono text-[11px] text-slate-500">Siempre visible · Arrastrable</span>
+            </div>
           </article>
-          <article class="card spotlight-card pillar reveal">
-            <div class="pillar-num mono">02</div>
-            <h3>Sin inyección en juegos</h3>
-            <p>Los FPS y 1% Low se miden de forma 100% pasiva con ETW de Windows. Nunca toca ejecutables ni memoria de ningún juego.</p>
+
+          <!-- Card 2 (2 cols): Modo Juego Automático -->
+          <article class="bento-card md:col-span-2 p-6 sm:p-7 flex flex-col justify-between reveal">
+            <div>
+              <h3 class="text-xl font-bold text-white mb-2">Modo Juego Automático</h3>
+              <p class="text-sm text-slate-400 leading-relaxed">Detecta Steam, Epic y ejecutables propios, activa Alto Rendimiento y genera un resumen post-partida.</p>
+            </div>
+            <div class="mt-5 space-y-2.5">
+              <div class="flex items-center justify-between px-3 py-2.5 rounded-xl bg-black/50 border border-emerald-400/25">
+                <div class="flex items-center gap-2.5">
+                  <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                  <span class="text-xs font-semibold text-white">Fortnite</span>
+                </div>
+                <span class="font-mono text-[10px] text-emerald-300">Detectado · Alto Rend.</span>
+              </div>
+              <div class="flex items-center justify-between px-3 py-2.5 rounded-xl bg-black/40 border border-white/[0.07]">
+                <div class="flex items-center gap-2.5">
+                  <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
+                  <span class="text-xs font-semibold text-slate-200">Valorant</span>
+                </div>
+                <span class="font-mono text-[10px] text-cyan-300">Perfil Listo</span>
+              </div>
+              <div class="flex items-center justify-between px-3 py-2.5 rounded-xl bg-black/40 border border-white/[0.07]">
+                <div class="flex items-center gap-2.5">
+                  <span class="w-2 h-2 rounded-full bg-indigo-400"></span>
+                  <span class="text-xs font-semibold text-slate-200">Counter-Strike 2</span>
+                </div>
+                <span class="font-mono text-[10px] text-slate-400">Steam Auto</span>
+              </div>
+            </div>
           </article>
-          <article class="card spotlight-card pillar reveal">
-            <div class="pillar-num mono">03</div>
-            <h3>Centro de Restauración</h3>
-            <p>Cada ajuste registra su valor previo exacto para deshacerlo en 1 clic, más creación de Puntos de Restauración nativos de Windows.</p>
+
+          <!-- Card 3 (2 cols): Suite de Windows 100% Reversible -->
+          <article class="bento-card md:col-span-2 p-6 sm:p-7 flex flex-col justify-between reveal">
+            <div>
+              <h3 class="text-xl font-bold text-white mb-2">Suite de Windows 100% Reversible</h3>
+              <p class="text-sm text-slate-400 leading-relaxed">Debloat seguro, control de arranque y reparación SFC/DISM integrados al Centro de Restauración.</p>
+            </div>
+            <div class="mt-5 space-y-2.5">
+              <div class="flex items-center justify-between px-3 py-2 rounded-xl bg-black/45 border border-white/[0.07]">
+                <span class="text-xs text-slate-200 font-medium">Debloat Seguro</span>
+                <span class="w-9 h-5 rounded-full bg-emerald-500/30 border border-emerald-400/50 p-0.5 flex justify-end"><span class="w-3.5 h-3.5 rounded-full bg-emerald-400"></span></span>
+              </div>
+              <div class="flex items-center justify-between px-3 py-2 rounded-xl bg-black/45 border border-white/[0.07]">
+                <span class="text-xs text-slate-200 font-medium">Gestor de Inicio</span>
+                <span class="w-9 h-5 rounded-full bg-cyan-500/30 border border-cyan-400/50 p-0.5 flex justify-end"><span class="w-3.5 h-3.5 rounded-full bg-cyan-400"></span></span>
+              </div>
+              <div class="flex items-center justify-between px-3 py-2 rounded-xl bg-black/45 border border-white/[0.07]">
+                <span class="text-xs text-slate-200 font-medium">SFC / DISM Repair</span>
+                <span class="font-mono text-[10px] text-emerald-300">OK</span>
+              </div>
+              <div class="pt-1">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-400/25 font-mono text-[10px] text-emerald-300">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                  Centro de Restauración 1-Clic
+                </span>
+              </div>
+            </div>
           </article>
-          <article class="card spotlight-card pillar reveal">
-            <div class="pillar-num mono">04</div>
-            <h3>0 telemetría oculta</h3>
-            <p>Sin cuentas, sin tracking ni anuncios. Solo consulta opcionalmente la API pública de GitHub para avisarte si hay nueva versión.</p>
+
+          <!-- Card 4 (2 cols): Red Avanzada & Speedtest -->
+          <article class="bento-card md:col-span-2 p-6 sm:p-7 flex flex-col justify-between reveal">
+            <div>
+              <h3 class="text-xl font-bold text-white mb-2">Red Avanzada &amp; Speedtest</h3>
+              <p class="text-sm text-slate-400 leading-relaxed">Benchmark de DNS con cambio en 1 clic, test de estabilidad de paquetes y medición real de velocidad.</p>
+            </div>
+            <div class="mt-5 space-y-3 p-3.5 rounded-xl bg-black/45 border border-white/[0.07]">
+              <div>
+                <div class="flex justify-between font-mono text-[11px] mb-1">
+                  <span class="text-emerald-300 font-semibold">Cloudflare 1.1.1.1</span>
+                  <span class="text-emerald-300">11 ms</span>
+                </div>
+                <div class="h-1.5 rounded-full bg-white/10 overflow-hidden"><div class="h-full w-[32%] rounded-full bg-gradient-to-r from-cyan-400 to-emerald-400"></div></div>
+              </div>
+              <div>
+                <div class="flex justify-between font-mono text-[11px] mb-1">
+                  <span class="text-slate-300">Google 8.8.8.8</span>
+                  <span class="text-slate-400">18 ms</span>
+                </div>
+                <div class="h-1.5 rounded-full bg-white/10 overflow-hidden"><div class="h-full w-[54%] rounded-full bg-cyan-400/70"></div></div>
+              </div>
+              <div>
+                <div class="flex justify-between font-mono text-[11px] mb-1">
+                  <span class="text-slate-400">Quad9 9.9.9.9</span>
+                  <span class="text-slate-500">24 ms</span>
+                </div>
+                <div class="h-1.5 rounded-full bg-white/10 overflow-hidden"><div class="h-full w-[74%] rounded-full bg-indigo-400/60"></div></div>
+              </div>
+              <div class="pt-1 flex items-center justify-between border-t border-white/[0.06] font-mono text-[10px]">
+                <span class="text-emerald-400 font-semibold">● 0% Packet Loss</span>
+                <span class="text-slate-400">Speedtest Integrado</span>
+              </div>
+            </div>
+          </article>
+
+          <!-- Card 5 (2 cols): Fortnite Pro -->
+          <article class="bento-card md:col-span-2 p-6 sm:p-7 flex flex-col justify-between reveal">
+            <div>
+              <h3 class="text-xl font-bold text-white mb-2">Fortnite Pro</h3>
+              <p class="text-sm text-slate-400 leading-relaxed">Presets competitivos sobre <code class="font-mono text-xs text-cyan-300">GameUserSettings.ini</code> con respaldo automático y limpieza de logs/replays.</p>
+            </div>
+            <div class="mt-5 rounded-xl bg-[#060911] border border-white/[0.08] p-3.5 font-mono text-[11px] space-y-1.5">
+              <div class="flex items-center justify-between text-slate-500 pb-1.5 border-b border-white/[0.06]">
+                <span>GameUserSettings.ini</span>
+                <span class="text-emerald-400">SAVED</span>
+              </div>
+              <div class="text-slate-400">bShowGrass=<span class="text-cyan-300">False</span></div>
+              <div class="text-slate-400">bLatencyTweak2=<span class="text-emerald-300">1</span></div>
+              <div class="text-slate-400">sg.ShadowQuality=<span class="text-cyan-300">0</span></div>
+              <div class="pt-2 flex flex-wrap gap-1.5">
+                <span class="px-2 py-0.5 rounded bg-emerald-500/15 border border-emerald-400/25 text-emerald-300 text-[10px]">Backup Automático</span>
+                <span class="px-2 py-0.5 rounded bg-cyan-500/15 border border-cyan-400/25 text-cyan-300 text-[10px]">Solo Lectura</span>
+              </div>
+            </div>
+          </article>
+
+          <!-- Card 6 (Wide - 6 cols): Apps (winget) & Perfiles 1-Clic -->
+          <article class="bento-card md:col-span-6 p-6 sm:p-7 reveal">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+              <div class="lg:col-span-6">
+                <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-indigo-500/15 border border-indigo-400/25 text-indigo-300 font-mono text-[11px] font-semibold mb-3">
+                  <span>WINGET + PERFILES + MANTENIMIENTO</span>
+                </div>
+                <h3 class="text-xl sm:text-2xl font-bold text-white mb-2">Apps (winget) &amp; Perfiles 1-Clic</h3>
+                <p class="text-sm text-slate-400 leading-relaxed">Buscá e instalá cualquier programa de forma silenciosa con el buscador global de <code class="font-mono text-xs text-slate-200">winget</code>, actualizá todo en un clic, alterná entre perfiles y programá tu mantenimiento semanal automático.</p>
+              </div>
+              <div class="lg:col-span-6 space-y-3">
+                <!-- Mini winget search bar -->
+                <div class="flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl bg-black/55 border border-white/[0.1] font-mono text-xs">
+                  <div class="flex items-center gap-2.5 text-slate-300">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <span>winget search <span class="text-cyan-300">"Discord"</span></span>
+                  </div>
+                  <span class="px-2 py-0.5 rounded bg-cyan-500/15 text-cyan-300 text-[10px] font-semibold">Instalar 1-Clic</span>
+                </div>
+                <!-- Profile Pills -->
+                <div class="flex flex-wrap gap-2">
+                  <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-400/30 text-emerald-300 text-xs font-semibold">
+                    ⚡ Perfil Competitivo
+                  </span>
+                  <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.1] text-slate-300 text-xs font-semibold">
+                    💼 Perfil Trabajo/Estudio
+                  </span>
+                  <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-500/15 border border-indigo-400/30 text-indigo-300 text-xs font-semibold">
+                    🗓️ Mantenimiento Semanal
+                  </span>
+                </div>
+              </div>
+            </div>
           </article>
         </div>
       </div>
     </section>
 
-    <!-- ========== FAQ INTERACTIVO ========== -->
-    <section class="section" id="faq">
-      <div class="container faq-container">
-        <div class="section-head reveal">
-          <span class="sec-kicker mono">PREGUNTAS FRECUENTES</span>
-          <h2>Respuestas directas</h2>
+    <!-- 5. COMPARISON TABLE (#comparativa) -->
+    <section id="comparativa" class="py-20 sm:py-28 border-t border-white/[0.06]">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-3xl mx-auto text-center mb-14 reveal">
+          <span class="font-mono text-xs uppercase tracking-[0.2em] text-emerald-400 font-semibold">Comparativa Directa</span>
+          <h2 class="mt-3 text-3xl sm:text-5xl font-extrabold tracking-tight text-white">Por qué PulseCore no es otro script .bat</h2>
+          <p class="mt-4 text-slate-400 text-base sm:text-lg">Ingeniería nativa, código auditable y reversibilidad total sin pagar suscripciones ni arriesgar tu sistema.</p>
         </div>
 
-        <div class="faq-list reveal">
-          <div class="card faq-item">
-            <button class="faq-q" aria-expanded="false">
+        <div class="glass-card rounded-3xl overflow-hidden reveal">
+          <div class="overflow-x-auto">
+            <table class="w-full min-w-[640px] text-left border-collapse">
+              <thead>
+                <tr class="border-b border-white/[0.08]">
+                  <th class="py-5 px-6 text-xs font-mono uppercase tracking-wider text-slate-400 w-[40%]">Característica</th>
+                  <th class="py-5 px-6 text-center compare-highlight border-t-2 border-t-cyan-400 w-[22%]">
+                    <div class="inline-flex flex-col items-center gap-1.5">
+                      <span class="px-2.5 py-0.5 rounded-full bg-gradient-to-r from-cyan-400 to-emerald-400 text-slate-950 font-mono text-[10px] font-extrabold tracking-wider">RECOMENDADO</span>
+                      <span class="text-base font-extrabold text-white tracking-wide">PulseCore</span>
+                    </div>
+                  </th>
+                  <th class="py-5 px-6 text-center text-sm font-semibold text-slate-400 w-[19%]">Scripts .bat de YouTube</th>
+                  <th class="py-5 px-6 text-center text-sm font-semibold text-slate-400 w-[19%]">Optimizadores Pagos</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-white/[0.06] text-sm">
+                <tr>
+                  <td class="py-4 px-6 font-medium text-slate-200">FPS + 1% Low sin inyección anti-cheat</td>
+                  <td class="py-4 px-6 text-center compare-highlight font-semibold text-emerald-300">✓ ETW Nativo</td>
+                  <td class="py-4 px-6 text-center text-slate-500">✕ No incluye</td>
+                  <td class="py-4 px-6 text-center text-amber-300/80">⚠ Overlay con hook</td>
+                </tr>
+                <tr>
+                  <td class="py-4 px-6 font-medium text-slate-200">Centro de Restauración 1-clic</td>
+                  <td class="py-4 px-6 text-center compare-highlight font-semibold text-emerald-300">✓ 100% Reversible</td>
+                  <td class="py-4 px-6 text-center text-rose-400/80">✕ Irreversible</td>
+                  <td class="py-4 px-6 text-center text-slate-400">Parcial</td>
+                </tr>
+                <tr>
+                  <td class="py-4 px-6 font-medium text-slate-200">Código abierto auditable</td>
+                  <td class="py-4 px-6 text-center compare-highlight font-semibold text-emerald-300">✓ GitHub Público</td>
+                  <td class="py-4 px-6 text-center text-amber-300/80">Ofuscado / Dudoso</td>
+                  <td class="py-4 px-6 text-center text-rose-400/80">✕ Código cerrado</td>
+                </tr>
+                <tr>
+                  <td class="py-4 px-6 font-medium text-slate-200">Sin anuncios ni telemetría</td>
+                  <td class="py-4 px-6 text-center compare-highlight font-semibold text-emerald-300">✓ 0% Telemetría</td>
+                  <td class="py-4 px-6 text-center text-slate-400">Variable</td>
+                  <td class="py-4 px-6 text-center text-rose-400/80">✕ Upsells / Ads</td>
+                </tr>
+                <tr>
+                  <td class="py-4 px-6 font-medium text-slate-200">Instalador + Auto-Updater</td>
+                  <td class="py-4 px-6 text-center compare-highlight font-semibold text-emerald-300">✓ GitHub Releases</td>
+                  <td class="py-4 px-6 text-center text-slate-500">✕ Manual</td>
+                  <td class="py-4 px-6 text-center text-slate-300">✓ Incluido</td>
+                </tr>
+                <tr>
+                  <td class="py-4 px-6 font-medium text-slate-200">Precio</td>
+                  <td class="py-4 px-6 text-center compare-highlight font-mono text-base font-extrabold text-cyan-300">$0 Gratis</td>
+                  <td class="py-4 px-6 text-center font-mono text-slate-400">$0</td>
+                  <td class="py-4 px-6 text-center font-mono text-slate-400">$15 – $49 USD</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. TRANSPARENT ENGINEERING / SECURITY (#seguridad) -->
+    <section id="seguridad" class="py-20 sm:py-28 border-t border-white/[0.06]">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-3xl mx-auto text-center mb-14 reveal">
+          <span class="font-mono text-xs uppercase tracking-[0.2em] text-cyan-400 font-semibold">Ingeniería Transparente</span>
+          <h2 class="mt-3 text-3xl sm:text-5xl font-extrabold tracking-tight text-white">Seguridad diseñada desde la primera línea</h2>
+          <p class="mt-4 text-slate-400 text-base sm:text-lg">Cada ajuste en PulseCore fue pensado para proteger tu cuenta, tu privacidad y la integridad de Windows.</p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <!-- Pillar 1 -->
+          <div class="glass-card rounded-2xl p-6 reveal">
+            <div class="w-11 h-11 rounded-xl bg-cyan-500/12 border border-cyan-400/25 flex items-center justify-center mb-4">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-2">0% Inyección en Juegos</h3>
+            <p class="text-sm text-slate-400 leading-relaxed">El Mini-HUD lee eventos de presentación de frames vía ETW de Windows sin tocar la memoria ni inyectar DLLs en ningún juego.</p>
+          </div>
+
+          <!-- Pillar 2 -->
+          <div class="glass-card rounded-2xl p-6 reveal">
+            <div class="w-11 h-11 rounded-xl bg-emerald-500/12 border border-emerald-400/25 flex items-center justify-center mb-4">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-2">Reversible al 100%</h3>
+            <p class="text-sm text-slate-400 leading-relaxed">Todos los cambios de Registro, Debloat y Fortnite crean respaldo previo y se pueden deshacer desde el Centro de Restauración.</p>
+          </div>
+
+          <!-- Pillar 3 -->
+          <div class="glass-card rounded-2xl p-6 reveal">
+            <div class="w-11 h-11 rounded-xl bg-indigo-500/12 border border-indigo-400/25 flex items-center justify-center mb-4">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-2">Código Abierto Auditable</h3>
+            <p class="text-sm text-slate-400 leading-relaxed">Todo el código fuente en C#, WPF y los scripts del instalador están públicos en GitHub para que cualquiera pueda revisarlos.</p>
+          </div>
+
+          <!-- Pillar 4 -->
+          <div class="glass-card rounded-2xl p-6 reveal">
+            <div class="w-11 h-11 rounded-xl bg-amber-500/12 border border-amber-400/25 flex items-center justify-center mb-4">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-2">Permisos Admin Explicados</h3>
+            <p class="text-sm text-slate-400 leading-relaxed">Solo solicita elevación UAC para leer sensores de hardware, abrir la sesión ETW de FPS, cambiar DNS y ejecutar SFC/DISM.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7. INTERACTIVE FAQ ACCORDION (#faq) -->
+    <section id="faq" class="py-20 sm:py-28 border-t border-white/[0.06]">
+      <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 reveal">
+          <span class="font-mono text-xs uppercase tracking-[0.2em] text-emerald-400 font-semibold">Preguntas Frecuentes</span>
+          <h2 class="mt-3 text-3xl sm:text-4xl font-extrabold tracking-tight text-white">Dudas resueltas sin vueltas</h2>
+        </div>
+
+        <div class="space-y-3.5 reveal" id="faqAccordion">
+          <!-- FAQ 1 -->
+          <div class="faq-item glass-card rounded-2xl overflow-hidden" data-open="true">
+            <button type="button" class="faq-trigger w-full px-6 py-5 text-left flex items-center justify-between gap-4 cursor-pointer bg-transparent border-0 text-white font-semibold text-sm sm:text-base">
               <span>¿Es seguro con Easy Anti-Cheat, Vanguard o BattlEye?</span>
-              <span class="faq-chev">+</span>
+              <svg class="faq-chevron shrink-0 text-cyan-400" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
-            <div class="faq-a">
-              <p>Sí. PulseCore <strong>no inyecta DLLs ni modifica memoria</strong> de ningún juego. El contador de FPS y 1% Low escucha eventos ETW de DXGI/D3D9 en modo solo lectura, y Fortnite Pro únicamente edita <code>GameUserSettings.ini</code>.</p>
+            <div class="faq-content">
+              <div class="faq-inner">
+                <p class="px-6 pb-5 text-sm text-slate-400 leading-relaxed">
+                  Sí. A diferencia de otros overlays que inyectan librerías DLL dentro del proceso del juego, PulseCore mide los FPS y el 1% Low utilizando <strong class="text-slate-200">ETW (Event Tracing for Windows)</strong>, una interfaz oficial del propio sistema operativo. No modifica binarios ni memoria de ningún juego.
+                </p>
+              </div>
             </div>
           </div>
 
-          <div class="card faq-item">
-            <button class="faq-q" aria-expanded="false">
-              <span>¿Por qué pide permisos de Administrador?</span>
-              <span class="faq-chev">+</span>
+          <!-- FAQ 2 -->
+          <div class="faq-item glass-card rounded-2xl overflow-hidden" data-open="false">
+            <button type="button" class="faq-trigger w-full px-6 py-5 text-left flex items-center justify-between gap-4 cursor-pointer bg-transparent border-0 text-white font-semibold text-sm sm:text-base">
+              <span>¿Por qué pide permisos de Administrador (UAC)?</span>
+              <svg class="faq-chevron shrink-0 text-cyan-400" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
-            <div class="faq-a">
-              <p>Windows exige elevación para leer sensores reales de temperatura (LibreHardwareMonitor), abrir la sesión ETW de DXGI para FPS y aplicar cambios del sistema (planes de energía, DNS, limpieza de <code>C:\Windows\Temp</code> y SFC/DISM).</p>
+            <div class="faq-content">
+              <div class="faq-inner">
+                <p class="px-6 pb-5 text-sm text-slate-400 leading-relaxed">
+                  Windows exige privilegios elevados para acceder a los sensores de temperatura de CPU/GPU, iniciar sesiones ETW de conteo de frames, cambiar servidores DNS en el adaptador de red, alternar planes de energía y ejecutar herramientas de reparación como <code class="font-mono text-xs text-cyan-300">SFC /scannow</code> y <code class="font-mono text-xs text-cyan-300">DISM</code>.
+                </p>
+              </div>
             </div>
           </div>
 
-          <div class="card faq-item">
-            <button class="faq-q" aria-expanded="false">
-              <span>¿Puedo deshacer cualquier cambio?</span>
-              <span class="faq-chev">+</span>
+          <!-- FAQ 3 -->
+          <div class="faq-item glass-card rounded-2xl overflow-hidden" data-open="false">
+            <button type="button" class="faq-trigger w-full px-6 py-5 text-left flex items-center justify-between gap-4 cursor-pointer bg-transparent border-0 text-white font-semibold text-sm sm:text-base">
+              <span>¿Puedo deshacer cualquier cambio que haga la app?</span>
+              <svg class="faq-chevron shrink-0 text-cyan-400" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
-            <div class="faq-a">
-              <p>Sí. El <strong>Centro de Restauración</strong> guarda el valor exacto anterior de cada cambio del Check-up y Debloat, el Modo Juego restaura tu plan al cerrar la partida y Fortnite Pro conserva <code>GameUserSettings.original.ini</code> intacto.</p>
+            <div class="faq-content">
+              <div class="faq-inner">
+                <p class="px-6 pb-5 text-sm text-slate-400 leading-relaxed">
+                  Totalmente. PulseCore incluye un <strong class="text-slate-200">Centro de Restauración</strong> integrado para revertir ajustes de Debloat, Registro y DNS en un clic, además de permitir crear Puntos de Restauración nativos de Windows y respaldos automáticos de tu configuración de Fortnite.
+                </p>
+              </div>
             </div>
           </div>
 
-          <div class="card faq-item">
-            <button class="faq-q" aria-expanded="false">
-              <span>¿Es realmente gratis?</span>
-              <span class="faq-chev">+</span>
+          <!-- FAQ 4 -->
+          <div class="faq-item glass-card rounded-2xl overflow-hidden" data-open="false">
+            <button type="button" class="faq-trigger w-full px-6 py-5 text-left flex items-center justify-between gap-4 cursor-pointer bg-transparent border-0 text-white font-semibold text-sm sm:text-base">
+              <span>¿Es realmente gratis y sin costos ocultos?</span>
+              <svg class="faq-chevron shrink-0 text-cyan-400" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
-            <div class="faq-a">
-              <p>100% gratis y open-source. Sin licencias, sin funciones bloqueadas ni publicidad.</p>
+            <div class="faq-content">
+              <div class="faq-inner">
+                <p class="px-6 pb-5 text-sm text-slate-400 leading-relaxed">
+                  Sí, PulseCore es 100% gratuito, de código abierto y se distribuye directamente desde GitHub Releases sin publicidad, sin mineros ni telemetría oculta. Además incluye Auto-Updater para avisarte cuando sale una nueva versión.
+                </p>
+              </div>
             </div>
           </div>
         </div>
+      </div>
+    </section>
 
-        <div class="cta-box card spotlight-card reveal">
-          <div>
-            <h3>¿Listo para probar PulseCore?</h3>
-            <p>Instalador oficial para Windows 10 y 11 (x64) directo desde GitHub Releases.</p>
+    <!-- 8. FINAL CTA BANNER -->
+    <section class="py-16 sm:py-24">
+      <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 reveal">
+        <div class="relative rounded-3xl overflow-hidden border border-cyan-400/25 bg-gradient-to-br from-cyan-500/[0.12] via-[#0b101b] to-emerald-500/[0.12] p-8 sm:p-14 text-center shadow-[0_30px_90px_-30px_rgba(0,229,255,0.28)]">
+          <h2 class="text-3xl sm:text-5xl font-extrabold tracking-tight text-white mb-4">Llevá tu PC al máximo rendimiento hoy</h2>
+          <p class="max-w-xl mx-auto text-slate-300 text-sm sm:text-base mb-8">Instalador oficial para Windows 10 y 11 (x64). Descargá en segundos, probá el Mini-HUD y sentí la estabilidad en tu próxima partida.</p>
+          <div class="flex flex-col sm:flex-row items-center justify-center gap-3.5">
+            <a href="https://github.com/alexlemos2217/PulseCore/releases/latest" class="js-download-link btn-primary-glow w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-7 py-4 rounded-xl text-sm sm:text-base">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <span>Descargar Instalador <span class="js-version-badge">v1.8.0</span></span>
+            </a>
+            <a href="https://github.com/alexlemos2217/PulseCore" target="_blank" rel="noopener noreferrer" class="btn-glass w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-4 rounded-xl text-sm sm:text-base font-semibold">
+              <span>Explorar Repositorio</span>
+            </a>
           </div>
-          <a class="btn btn-primary btn-lg" data-download-btn href="https://github.com/alexlemos2217/PulseCore/releases/latest">
-            <span class="btn-beam" aria-hidden="true"></span>
-            <span>⬇ Descargar PulseCore</span>
-          </a>
         </div>
       </div>
     </section>
   </main>
 
-  <!-- ========== MODAL CHANGELOG ========== -->
-  <div class="modal-overlay" id="changelogModal" hidden role="dialog" aria-modal="true" aria-labelledby="clTitle">
-    <article class="card modal-card">
-      <div class="modal-head">
-        <div>
-          <span class="tag cyan mono" id="clTag">v1.8.0</span>
-          <h3 id="clTitle">Notas de la Release</h3>
+  <!-- FOOTER -->
+  <footer class="relative z-10 border-t border-white/[0.07] bg-black/40 py-10">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg bg-cyan-500/15 border border-cyan-400/25 flex items-center justify-center">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M2.5 12H6.5L9.2 5.2L13.6 18.8L16.8 10.5L18.5 12H21.5" stroke="#00e5ff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
         </div>
-        <button class="modal-close" id="btnCloseChangelog" type="button" aria-label="Cerrar">✕</button>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="font-extrabold tracking-widest text-xs text-white">PULSECORE</span>
+            <span class="js-version-badge font-mono text-[11px] text-cyan-400">v1.8.0</span>
+          </div>
+          <p class="text-xs text-slate-500">Desarrollado por Alex Lemos · Open Source para Windows</p>
+        </div>
       </div>
-      <div class="modal-body mono" id="clBody">Cargando notas desde GitHub Releases…</div>
-      <div class="modal-foot">
-        <a class="btn btn-ghost btn-sm" id="clReleaseLink" href="https://github.com/alexlemos2217/PulseCore/releases/latest" target="_blank" rel="noopener">Ver en GitHub</a>
-        <a class="btn btn-primary btn-sm" data-download-btn href="https://github.com/alexlemos2217/PulseCore/releases/latest">⬇ Descargar instalador</a>
-      </div>
-    </article>
-  </div>
 
-  <!-- ========== FOOTER ========== -->
-  <footer class="footer">
-    <div class="container footer-inner">
-      <div class="footer-left">
-        <span class="brand-name">PULSECORE</span>
-        <span class="ver-pill mono" data-version-badge>v1.8.0</span>
-        <span class="footer-copy">Open Source · C# / .NET, WPF &amp; WebView2.</span>
-      </div>
-      <div class="footer-links">
-        <a href="https://github.com/alexlemos2217/PulseCore/releases" target="_blank" rel="noopener">GitHub Releases</a>
-        <a href="https://github.com/alexlemos2217/PulseCore/issues" target="_blank" rel="noopener">Reportar un bug</a>
-        <a href="https://github.com/alexlemos2217/PulseCore" target="_blank" rel="noopener">Repositorio</a>
+      <div class="flex flex-wrap items-center justify-center gap-6 text-xs sm:text-sm text-slate-400">
+        <a href="https://github.com/alexlemos2217/PulseCore" target="_blank" rel="noopener noreferrer" class="hover:text-white transition-colors">GitHub Repo</a>
+        <a href="https://github.com/alexlemos2217/PulseCore/releases" target="_blank" rel="noopener noreferrer" class="hover:text-white transition-colors">Releases</a>
+        <a href="https://github.com/alexlemos2217/PulseCore/issues" target="_blank" rel="noopener noreferrer" class="hover:text-white transition-colors">Reportar Bug / Issues</a>
       </div>
     </div>
   </footer>
 
-  <script src="script.js"></script>
+  <!-- CHANGELOG MODAL -->
+  <div id="changelogModal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 bg-black/75 backdrop-blur-md" role="dialog" aria-modal="true" aria-labelledby="changelogTitle">
+    <div class="glass-card w-full max-w-2xl max-h-[82vh] rounded-3xl overflow-hidden flex flex-col border border-white/[0.14] shadow-2xl">
+      <div class="flex items-center justify-between px-6 py-4 border-b border-white/[0.08] bg-black/30">
+        <div class="flex items-center gap-2.5">
+          <h3 id="changelogTitle" class="text-base sm:text-lg font-bold text-white">Notas de la Versión</h3>
+          <span class="js-version-badge font-mono text-xs px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-400/25">v1.8.0</span>
+        </div>
+        <button id="closeChangelogBtn" type="button" aria-label="Cerrar modal" class="btn-glass p-2 rounded-xl text-slate-300 cursor-pointer">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div id="changelogBody" class="p-6 overflow-y-auto text-sm text-slate-300 space-y-3 leading-relaxed">
+        <!-- Populated dynamically from GitHub Releases API or fallback -->
+      </div>
+      <div class="px-6 py-4 border-t border-white/[0.08] bg-black/30 flex flex-wrap items-center justify-between gap-3">
+        <span id="changelogDate" class="font-mono text-xs text-slate-500">Última Release Oficial</span>
+        <a href="https://github.com/alexlemos2217/PulseCore/releases/latest" class="js-download-link btn-primary-glow inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm">
+          <span>Descargar Instalador</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- INTERACTIVE LOGIC & GITHUB API -->
+  <script>
+    (function () {
+      'use strict';
+
+      /* =====================================================================
+         1. MOBILE MENU & FAQ ACCORDION
+      ===================================================================== */
+      const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+      const mobileMenu = document.getElementById('mobileMenu');
+      if (mobileMenuBtn && mobileMenu) {
+        mobileMenuBtn.addEventListener('click', () => {
+          mobileMenu.classList.toggle('hidden');
+        });
+        document.querySelectorAll('.mobile-nav-link').forEach((link) => {
+          link.addEventListener('click', () => mobileMenu.classList.add('hidden'));
+        });
+      }
+
+      document.querySelectorAll('.faq-item').forEach((item) => {
+        const btn = item.querySelector('.faq-trigger');
+        if (!btn) return;
+        btn.addEventListener('click', () => {
+          const isOpen = item.getAttribute('data-open') === 'true';
+          document.querySelectorAll('.faq-item').forEach((el) => el.setAttribute('data-open', 'false'));
+          item.setAttribute('data-open', isOpen ? 'false' : 'true');
+        });
+      });
+
+      /* =====================================================================
+         2. MOUSE-TRACKING SPOTLIGHT ON BENTO CARDS
+      ===================================================================== */
+      document.querySelectorAll('.bento-card').forEach((card) => {
+        card.addEventListener('mousemove', (e) => {
+          const rect = card.getBoundingClientRect();
+          card.style.setProperty('--mx', `${e.clientX - rect.left}px`);
+          card.style.setProperty('--my', `${e.clientY - rect.top}px`);
+        });
+      });
+
+      /* =====================================================================
+         3. SCROLL REVEAL (IntersectionObserver)
+      ===================================================================== */
+      const revealEls = document.querySelectorAll('.reveal');
+      if ('IntersectionObserver' in window) {
+        const io = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
+                io.unobserve(entry.target);
+              }
+            });
+          },
+          { threshold: 0.12 }
+        );
+        revealEls.forEach((el) => io.observe(el));
+      } else {
+        revealEls.forEach((el) => el.classList.add('visible'));
+      }
+
+      /* =====================================================================
+         4. INTERACTIVE APP SHOWCASE SIMULATOR (Normal vs PulseCore Boost)
+      ===================================================================== */
+      const CIRCUMFERENCE = 2 * Math.PI * 44; // ~276.46
+
+      const PRESETS = {
+        normal: {
+          fps: 116,
+          low: 71,
+          cpu: 58,
+          cpuTemp: 66,
+          gpuTemp: 67,
+          gpuLoad: 79,
+          ram: 74,
+          ramGb: 11.8,
+          ping: 34,
+          jitter: 8.4,
+        },
+        boost: {
+          fps: 174,
+          low: 148,
+          cpu: 32,
+          cpuTemp: 52,
+          gpuTemp: 57,
+          gpuLoad: 94,
+          ram: 38,
+          ramGb: 6.1,
+          ping: 14,
+          jitter: 1.2,
+        },
+      };
+
+      let activeMode = 'normal';
+      const current = { ...PRESETS.normal };
+      let target = { ...PRESETS.normal };
+
+      // DOM References
+      const btnModeNormal = document.getElementById('btnModeNormal');
+      const btnModeBoost = document.getElementById('btnModeBoost');
+      const appMockupFrame = document.getElementById('appMockupFrame');
+      const mockupModeBadge = document.getElementById('mockupModeBadge');
+      const mockupModeDot = document.getElementById('mockupModeDot');
+      const mockupModeText = document.getElementById('mockupModeText');
+      const heroMiniHud = document.getElementById('heroMiniHud');
+      const graphStatusPill = document.getElementById('graphStatusPill');
+      const graphLegendDot = document.getElementById('graphLegendDot');
+
+      const elHudFps = document.getElementById('hudFps');
+      const elHudLow = document.getElementById('hudLow');
+      const elHudCpu = document.getElementById('hudCpu');
+      const elHudGpu = document.getElementById('hudGpu');
+      const elHudPing = document.getElementById('hudPing');
+      const elGraphAvg = document.getElementById('graphAvgFps');
+      const elGraphLow = document.getElementById('graphLowFps');
+
+      const gaugeCpuArc = document.getElementById('gaugeCpuArc');
+      const gaugeCpuVal = document.getElementById('gaugeCpuVal');
+      const gaugeCpuSub = document.getElementById('gaugeCpuSub');
+
+      const gaugeGpuArc = document.getElementById('gaugeGpuArc');
+      const gaugeGpuVal = document.getElementById('gaugeGpuVal');
+      const gaugeGpuSub = document.getElementById('gaugeGpuSub');
+
+      const gaugeRamArc = document.getElementById('gaugeRamArc');
+      const gaugeRamVal = document.getElementById('gaugeRamVal');
+      const gaugeRamSub = document.getElementById('gaugeRamSub');
+
+      const gaugePingArc = document.getElementById('gaugePingArc');
+      const gaugePingVal = document.getElementById('gaugePingVal');
+      const gaugePingSub = document.getElementById('gaugePingSub');
+
+      function setGauge(arcEl, percent, colorHex) {
+        const clamped = Math.max(4, Math.min(100, percent));
+        const offset = CIRCUMFERENCE * (1 - clamped / 100);
+        arcEl.style.strokeDashoffset = offset.toFixed(2);
+        arcEl.style.stroke = colorHex;
+      }
+
+      function applyModeStyles(mode) {
+        const isBoost = mode === 'boost';
+        activeMode = mode;
+        target = { ...PRESETS[mode] };
+
+        // Segmented switch visual state
+        btnModeNormal.classList.toggle('active-normal', !isBoost);
+        btnModeBoost.classList.toggle('active-boost', isBoost);
+        btnModeNormal.setAttribute('aria-selected', String(!isBoost));
+        btnModeBoost.setAttribute('aria-selected', String(isBoost));
+
+        if (isBoost) {
+          appMockupFrame.style.borderColor = 'rgba(0, 229, 255, 0.35)';
+          appMockupFrame.style.boxShadow = '0 30px 95px -20px rgba(0, 0, 0, 0.92), 0 0 65px -15px rgba(0, 229, 255, 0.28)';
+          mockupModeBadge.className = 'inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] sm:text-xs font-mono font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-400/35 transition-all duration-300';
+          mockupModeDot.className = 'w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse';
+          mockupModeText.textContent = '⚡ Boost Activo — Alto Rendimiento';
+          heroMiniHud.style.borderColor = 'rgba(0, 229, 255, 0.42)';
+          heroMiniHud.style.boxShadow = '0 12px 36px rgba(0, 0, 0, 0.7), 0 0 24px -6px rgba(0, 229, 255, 0.4)';
+          elHudFps.className = 'text-sm sm:text-base font-bold text-emerald-300';
+          elHudLow.className = 'text-xs sm:text-sm font-bold text-cyan-300';
+          elHudPing.className = 'text-xs text-emerald-400';
+          graphStatusPill.className = 'font-mono text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-400/30';
+          graphStatusPill.textContent = 'Frametime estable · +50% FPS';
+          graphLegendDot.className = 'w-2 h-2 rounded-full bg-cyan-400';
+        } else {
+          appMockupFrame.style.borderColor = 'rgba(255, 255, 255, 0.11)';
+          appMockupFrame.style.boxShadow = '0 30px 90px -20px rgba(0, 0, 0, 0.9), 0 0 50px -20px rgba(0, 229, 255, 0.2)';
+          mockupModeBadge.className = 'inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] sm:text-xs font-mono font-semibold bg-amber-500/10 text-amber-300 border border-amber-400/25 transition-all duration-300';
+          mockupModeDot.className = 'w-1.5 h-1.5 rounded-full bg-amber-400';
+          mockupModeText.textContent = 'Modo Normal — Plan Equilibrado';
+          heroMiniHud.style.borderColor = 'rgba(255, 255, 255, 0.14)';
+          heroMiniHud.style.boxShadow = '0 12px 32px rgba(0, 0, 0, 0.65)';
+          elHudFps.className = 'text-sm sm:text-base font-bold text-amber-300';
+          elHudLow.className = 'text-xs sm:text-sm font-bold text-amber-200';
+          elHudPing.className = 'text-xs text-amber-300';
+          graphStatusPill.className = 'font-mono text-[10px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-400/25';
+          graphStatusPill.textContent = 'Micro-stuttering detectado';
+          graphLegendDot.className = 'w-2 h-2 rounded-full bg-amber-400';
+        }
+      }
+
+      btnModeNormal.addEventListener('click', () => applyModeStyles('normal'));
+      btnModeBoost.addEventListener('click', () => applyModeStyles('boost'));
+
+      /* =====================================================================
+         5. RESPONSIVE LIVE FPS & FRAMETIME CANVAS GRAPH
+      ===================================================================== */
+      const canvas = document.getElementById('fpsGraphCanvas');
+      const canvasContainer = document.getElementById('fpsCanvasContainer');
+      const ctx = canvas ? canvas.getContext('2d') : null;
+      const HISTORY_LEN = 70;
+      const fpsHistory = Array.from({ length: HISTORY_LEN }, () => 116 + (Math.random() - 0.5) * 26);
+      const lowHistory = Array.from({ length: HISTORY_LEN }, () => 71 + (Math.random() - 0.5) * 18);
+
+      function resizeCanvas() {
+        if (!canvas || !canvasContainer) return;
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const rect = canvasContainer.getBoundingClientRect();
+        canvas.width = Math.max(100, Math.floor(rect.width * dpr));
+        canvas.height = Math.max(80, Math.floor(rect.height * dpr));
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+
+      window.addEventListener('resize', resizeCanvas);
+      resizeCanvas();
+
+      let lastTick = 0;
+      function renderLoop(timestamp) {
+        // Smoothly interpolate metrics
+        const lerp = 0.085;
+        Object.keys(current).forEach((k) => {
+          current[k] += (target[k] - current[k]) * lerp;
+        });
+
+        // Push new graph sample every ~110ms
+        if (timestamp - lastTick > 110) {
+          lastTick = timestamp;
+          const isBoost = activeMode === 'boost';
+          const jitterAmp = isBoost ? 4.5 : 24;
+          const spike = !isBoost && Math.random() < 0.16 ? -26 * Math.random() : 0;
+
+          const sampleFps = Math.max(40, Math.min(200, current.fps + (Math.random() - 0.5) * jitterAmp + spike));
+          const sampleLow = Math.max(30, Math.min(sampleFps - 6, current.low + (Math.random() - 0.5) * (isBoost ? 3 : 14) + spike * 0.6));
+
+          fpsHistory.push(sampleFps);
+          fpsHistory.shift();
+          lowHistory.push(sampleLow);
+          lowHistory.shift();
+
+          // Update DOM numbers with slight live pulse
+          const dispFps = Math.round(sampleFps);
+          const dispLow = Math.round(sampleLow);
+          const dispCpu = Math.round(current.cpu + (Math.random() - 0.5) * 2);
+          const dispGpu = Math.round(current.gpuTemp);
+          const dispRam = Math.round(current.ram);
+          const dispPing = Math.max(9, Math.round(current.ping + (Math.random() - 0.5) * (isBoost ? 1 : 4)));
+
+          elHudFps.textContent = dispFps;
+          elHudLow.textContent = dispLow;
+          elHudCpu.textContent = `${dispCpu}%`;
+          elHudGpu.textContent = `${dispGpu}°C`;
+          elHudPing.textContent = `${dispPing}ms`;
+          elGraphAvg.textContent = dispFps;
+          elGraphLow.textContent = dispLow;
+
+          gaugeCpuVal.textContent = `${dispCpu}%`;
+          gaugeCpuSub.textContent = `${Math.round(current.cpuTemp)} °C`;
+          setGauge(gaugeCpuArc, dispCpu, isBoost ? '#00e5ff' : '#f59e0b');
+
+          gaugeGpuVal.textContent = `${dispGpu}°C`;
+          gaugeGpuSub.textContent = `${Math.round(current.gpuLoad)}% GPU`;
+          setGauge(gaugeGpuArc, (dispGpu / 90) * 100, isBoost ? '#10b981' : '#f59e0b');
+
+          gaugeRamVal.textContent = `${dispRam}%`;
+          gaugeRamSub.textContent = `${current.ramGb.toFixed(1)} / 16 GB`;
+          setGauge(gaugeRamArc, dispRam, isBoost ? '#00e5ff' : '#fb7185');
+
+          gaugePingVal.textContent = `${dispPing}ms`;
+          gaugePingSub.textContent = `Jitter ${current.jitter.toFixed(1)}ms`;
+          setGauge(gaugePingArc, Math.min(100, (dispPing / 60) * 100), isBoost ? '#10b981' : '#f59e0b');
+        }
+
+        // Draw Canvas
+        if (ctx && canvasContainer) {
+          const rect = canvasContainer.getBoundingClientRect();
+          const w = rect.width;
+          const h = rect.height;
+          ctx.clearRect(0, 0, w, h);
+
+          // Horizontal guide lines
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.055)';
+          ctx.lineWidth = 1;
+          for (let i = 1; i <= 3; i++) {
+            const y = (h / 4) * i;
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(w, y);
+            ctx.stroke();
+          }
+
+          const mapY = (val) => h - ((val - 30) / 175) * (h - 18) - 9;
+          const stepX = w / (HISTORY_LEN - 1);
+          const isBoost = activeMode === 'boost';
+
+          // 1% Low Line (subtle indigo)
+          ctx.beginPath();
+          lowHistory.forEach((v, idx) => {
+            const x = idx * stepX;
+            const y = mapY(v);
+            if (idx === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          });
+          ctx.strokeStyle = 'rgba(129, 140, 248, 0.65)';
+          ctx.lineWidth = 1.6;
+          ctx.setLineDash([4, 4]);
+          ctx.stroke();
+          ctx.setLineDash([]);
+
+          // Main FPS Line + Area Gradient
+          ctx.beginPath();
+          fpsHistory.forEach((v, idx) => {
+            const x = idx * stepX;
+            const y = mapY(v);
+            if (idx === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          });
+
+          const lineStroke = isBoost ? '#00e5ff' : '#f59e0b';
+          ctx.strokeStyle = lineStroke;
+          ctx.lineWidth = 2.4;
+          ctx.shadowColor = isBoost ? 'rgba(0, 229, 255, 0.6)' : 'rgba(245, 158, 11, 0.45)';
+          ctx.shadowBlur = 10;
+          ctx.stroke();
+          ctx.shadowBlur = 0;
+
+          // Fill under FPS line
+          ctx.lineTo(w, h);
+          ctx.lineTo(0, h);
+          ctx.closePath();
+          const grad = ctx.createLinearGradient(0, 0, 0, h);
+          if (isBoost) {
+            grad.addColorStop(0, 'rgba(0, 229, 255, 0.24)');
+            grad.addColorStop(0.6, 'rgba(16, 185, 129, 0.08)');
+            grad.addColorStop(1, 'rgba(16, 185, 129, 0)');
+          } else {
+            grad.addColorStop(0, 'rgba(245, 158, 11, 0.22)');
+            grad.addColorStop(1, 'rgba(245, 158, 11, 0)');
+          }
+          ctx.fillStyle = grad;
+          ctx.fill();
+        }
+
+        requestAnimationFrame(renderLoop);
+      }
+      requestAnimationFrame(renderLoop);
+
+      /* =====================================================================
+         6. CHANGELOG MODAL & LIVE GITHUB RELEASES API INTEGRATION
+      ===================================================================== */
+      const changelogModal = document.getElementById('changelogModal');
+      const openChangelogBtn = document.getElementById('openChangelogBtn');
+      const closeChangelogBtn = document.getElementById('closeChangelogBtn');
+      const changelogBody = document.getElementById('changelogBody');
+      const changelogDate = document.getElementById('changelogDate');
+
+      const DEFAULT_NOTES = [
+        '## ⚡ Novedades de PulseCore v1.8.0',
+        '- **Mini-HUD Flotante (ETW sin inyección):** Contador de FPS reales + 1% Low FPS, CPU, GPU °C, RAM y Ping.',
+        '- **Modo Juego Automático:** Detección de Steam/Epic, Alto Rendimiento automático y resumen post-partida.',
+        '- **Suite de Windows Segura:** Debloat 100% reversible, Gestor de Inicio y reparación SFC/DISM.',
+        '- **Red Avanzada:** DNS Switcher con Benchmark, Test de Packet Loss y Speedtest integrado.',
+        '- **Apps (winget) & Extras Pro:** Buscador global de winget, Perfiles 1-clic, Exportar/Importar config y Mantenimiento Semanal.',
+      ].join('\n');
+
+      function escapeHtml(str) {
+        return str
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
+
+      function renderMarkdownLite(md) {
+        const lines = (md || DEFAULT_NOTES).split(/\r?\n/);
+        let html = '';
+        let inList = false;
+
+        lines.forEach((raw) => {
+          const line = raw.trim();
+          if (!line) {
+            if (inList) {
+              html += '</ul>';
+              inList = false;
+            }
+            return;
+          }
+
+          const formatInline = (text) =>
+            escapeHtml(text)
+              .replace(/\*\*(.+?)\*\*/g, '<strong class="text-white font-semibold">$1</strong>')
+              .replace(/`(.+?)`/g, '<code class="font-mono text-xs px-1.5 py-0.5 rounded bg-white/10 text-cyan-300">$1</code>');
+
+          if (line.startsWith('### ')) {
+            if (inList) { html += '</ul>'; inList = false; }
+            html += `<h4 class="text-sm font-bold text-cyan-300 pt-2">${formatInline(line.slice(4))}</h4>`;
+          } else if (line.startsWith('## ')) {
+            if (inList) { html += '</ul>'; inList = false; }
+            html += `<h3 class="text-base font-bold text-white pt-1">${formatInline(line.slice(3))}</h3>`;
+          } else if (line.startsWith('- ') || line.startsWith('* ')) {
+            if (!inList) {
+              html += '<ul class="list-disc pl-5 space-y-1.5 text-slate-300">';
+              inList = true;
+            }
+            html += `<li>${formatInline(line.slice(2))}</li>`;
+          } else if (line !== '---') {
+            if (inList) { html += '</ul>'; inList = false; }
+            html += `<p class="text-slate-300">${formatInline(line)}</p>`;
+          }
+        });
+
+        if (inList) html += '</ul>';
+        return html;
+      }
+
+      // Initialize fallback changelog
+      changelogBody.innerHTML = renderMarkdownLite(DEFAULT_NOTES);
+
+      function openModal() {
+        changelogModal.classList.remove('hidden');
+        changelogModal.classList.add('flex');
+        document.body.style.overflow = 'hidden';
+      }
+
+      function closeModal() {
+        changelogModal.classList.add('hidden');
+        changelogModal.classList.remove('flex');
+        document.body.style.overflow = '';
+      }
+
+      openChangelogBtn.addEventListener('click', openModal);
+      closeChangelogBtn.addEventListener('click', closeModal);
+      changelogModal.addEventListener('click', (e) => {
+        if (e.target === changelogModal) closeModal();
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !changelogModal.classList.contains('hidden')) closeModal();
+      });
+
+      // Live GitHub Releases Fetch
+      async function syncLatestRelease() {
+        try {
+          const resp = await fetch('https://api.github.com/repos/alexlemos2217/PulseCore/releases/latest', {
+            headers: { Accept: 'application/vnd.github+json' },
+          });
+          if (!resp.ok) return;
+          const data = await resp.json();
+
+          const tag = typeof data.tag_name === 'string' && data.tag_name.trim() ? data.tag_name.trim() : 'v1.8.0';
+          document.querySelectorAll('.js-version-badge').forEach((el) => {
+            el.textContent = tag;
+          });
+
+          let downloadUrl = data.html_url || 'https://github.com/alexlemos2217/PulseCore/releases/latest';
+          let sizeMb = null;
+
+          if (Array.isArray(data.assets)) {
+            const exeAsset = data.assets.find(
+              (a) => typeof a.name === 'string' && a.name.toLowerCase().endsWith('.exe') && a.browser_download_url
+            );
+            if (exeAsset) {
+              downloadUrl = exeAsset.browser_download_url;
+              if (typeof exeAsset.size === 'number' && exeAsset.size > 0) {
+                sizeMb = (exeAsset.size / (1024 * 1024)).toFixed(1);
+              }
+            }
+          }
+
+          document.querySelectorAll('.js-download-link').forEach((link) => {
+            link.setAttribute('href', downloadUrl);
+          });
+
+          if (sizeMb) {
+            document.querySelectorAll('.js-file-size').forEach((badge) => {
+              badge.textContent = `${sizeMb} MB`;
+              badge.classList.remove('hidden');
+            });
+          }
+
+          if (typeof data.body === 'string' && data.body.trim()) {
+            changelogBody.innerHTML = renderMarkdownLite(data.body);
+          }
+
+          if (data.published_at) {
+            const dt = new Date(data.published_at);
+            if (!isNaN(dt.getTime())) {
+              changelogDate.textContent = `Publicado el ${dt.toLocaleDateString('es-UY', { day: 'numeric', month: 'long', year: 'numeric' })}`;
+            }
+          }
+        } catch (_) {
+          // Graceful silent fallback already active (v1.8.0)
+        }
+      }
+
+      syncLatestRelease();
+    })();
+  </script>
 </body>
 </html>
