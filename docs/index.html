@@ -3,9 +3,9 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>PulseCore — Telemetría Real y Optimización Gamer para Windows</title>
+  <title>PulseCore — Exprimí cada FPS. Sin romper Windows.</title>
   <meta name="description" content="PulseCore es una suite gratuita y open-source para Windows 10/11: Mini-HUD con FPS y 1% Low sin inyección (ETW), Modo Juego automático, Fortnite Pro, DNS Benchmark, Speedtest y Debloat 100% reversible." />
-  <meta name="theme-color" content="#06080d" />
+  <meta name="theme-color" content="#050608" />
   <link rel="icon" href="favicon.ico" type="image/x-icon" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -13,9 +13,12 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+  <!-- Atmósfera cinematográfica -->
   <div class="ambient-bg" aria-hidden="true">
-    <div class="aura aura-top"></div>
-    <div class="aura aura-bottom"></div>
+    <div class="hero-grid-mask"></div>
+    <div class="aura aura-cyan"></div>
+    <div class="aura aura-emerald"></div>
+    <div class="aura aura-gold"></div>
   </div>
 
   <!-- ========== NAVBAR FIJA ========== -->
@@ -36,7 +39,7 @@
         <span class="ver-pill mono" data-version-badge>v1.8.0</span>
       </a>
 
-      <nav class="nav-links" aria-label="Navegación">
+      <nav class="nav-links" aria-label="Navegación principal">
         <a href="#funciones">Funciones</a>
         <a href="#seguridad">Seguridad</a>
         <a href="#faq">FAQ</a>
@@ -50,192 +53,274 @@
   </header>
 
   <main id="top">
-    <!-- ========== HERO ========== -->
+    <!-- ========== HERO INTERACTIVO ========== -->
     <section class="hero">
-      <div class="container hero-grid">
-        <div class="hero-copy">
-          <div class="hero-eyebrow mono">
+      <div class="container">
+        <div class="hero-top reveal">
+          <a class="release-pill mono" href="https://github.com/alexlemos2217/PulseCore/releases/latest" target="_blank" rel="noopener">
             <span class="pulse-dot"></span>
-            <span>OPEN-SOURCE · WINDOWS 10 / 11 · <strong data-version-badge>v1.8.0</strong></span>
-          </div>
+            <span id="releasePillText">v1.8.0 Disponible — Instalador Oficial Windows</span>
+          </a>
 
           <h1 class="hero-title">
-            Rendimiento gamer real.<br />
-            <span class="grad-text">Cero riesgo. Cero inyección.</span>
+            Exprimí cada FPS.<br />
+            <span class="grad-text">Sin romper Windows.</span>
           </h1>
 
           <p class="hero-sub">
-            Monitoreá tus temperaturas, <strong>FPS y 1% Low</strong> en tiempo real sin tocar los archivos de tus juegos, automatizá tu Modo Juego y optimizá Windows con un Centro de Restauración 100% reversible.
+            Telemetría de hardware en tiempo real, <strong>Mini-HUD con FPS y 1% Low vía ETW (0% inyección)</strong>, Modo Juego automático y optimización 100% reversible en una sola app nativa para Windows 10 y 11.
           </p>
 
           <div class="hero-ctas">
             <a class="btn btn-primary btn-lg" data-download-btn href="https://github.com/alexlemos2217/PulseCore/releases/latest">
               <span class="btn-beam" aria-hidden="true"></span>
-              <span>⬇ Descargar Instalador (Windows 10/11)</span>
+              <span id="heroDownloadLabel">⬇ Descargar PulseCore v1.8.0</span>
             </a>
-            <a class="btn btn-ghost btn-lg" href="https://github.com/alexlemos2217/PulseCore" target="_blank" rel="noopener">
-              Ver código en GitHub
+            <button class="btn btn-ghost btn-lg" id="btnOpenChangelog" type="button">
+              Ver Changelog
+            </button>
+            <a class="btn btn-link btn-lg" href="https://github.com/alexlemos2217/PulseCore" target="_blank" rel="noopener">
+              Código en GitHub →
             </a>
-          </div>
-
-          <div class="hero-meta mono" id="releaseMeta">
-            Última release: <span data-version-badge>v1.8.0</span> · Gratis y auditable · Sin anuncios
           </div>
         </div>
 
-        <!-- VISUAL DERECHA: MINI-HUD + PREVIEW DASHBOARD -->
-        <div class="hero-visual">
-          <!-- Mini-HUD Flotante Preview -->
-          <div class="hud-preview" aria-label="Vista previa del Mini-HUD flotante">
-            <span class="hud-label mono">MINI-HUD FLOTANTE · ETW PASIVO</span>
-            <div class="hud-pill mono">
-              <span class="hud-dot"></span>
-              <span class="hud-fps">144 FPS</span>
-              <span class="hud-low">· 1% 118</span>
-              <span class="hud-sep"></span>
-              <span class="hud-k">CPU</span><span class="hud-cyan">32%</span>
-              <span class="hud-sep"></span>
-              <span class="hud-k">GPU</span><span class="hud-em">58°C</span>
-              <span class="hud-sep"></span>
-              <span class="hud-em">18 ms</span>
+        <!-- ESCAPARATE VISUAL INTERACTIVO -->
+        <div class="showcase-wrap reveal">
+          <div class="showcase-toolbar">
+            <!-- Switch Simulador -->
+            <div class="sim-switch" role="group" aria-label="Simulador de rendimiento">
+              <button class="sim-btn active" id="btnSimNormal" data-sim="normal" type="button">Modo Normal</button>
+              <button class="sim-btn boost" id="btnSimBoost" data-sim="boost" type="button">⚡ Simular PulseCore Boost</button>
+            </div>
+
+            <!-- Tab alternar Vista Interactiva / Captura Real (visible si existe PNG) -->
+            <div class="sim-switch" id="viewModeTabs" hidden>
+              <button class="sim-btn active" data-stage="interactive" type="button">Vista Interactiva</button>
+              <button class="sim-btn" data-stage="screenshot" type="button">Captura Real</button>
             </div>
           </div>
 
-          <!-- Contenedor de captura real con fallback CSS Dark Luxury -->
-          <div class="shot-frame card glow-card">
-            <div class="shot-bar">
-              <span class="shot-dots"><i></i><i></i><i></i></span>
-              <span class="shot-title mono">PulseCore · Dashboard en vivo</span>
-              <span class="shot-live mono">● LIVE · ADMIN</span>
+          <div class="showcase-stage">
+            <!-- MINI-HUD FLOTANTE SUPERPUESTO -->
+            <div class="floating-hud mono" id="simHud" aria-label="Mini-HUD flotante interactivo">
+              <span class="hud-dot"></span>
+              <span class="hud-fps" id="simHudFps">116 FPS</span>
+              <span class="hud-low" id="simHudLow">· 1% 71</span>
+              <span class="hud-sep"></span>
+              <span class="hud-k">CPU</span><span class="hud-cyan" id="simHudCpu">48%</span>
+              <span class="hud-sep"></span>
+              <span class="hud-k">GPU</span><span class="hud-em" id="simHudGpu">67°C</span>
+              <span class="hud-sep"></span>
+              <span class="hud-k">PING</span><span class="hud-em" id="simHudPing">34 ms</span>
             </div>
 
-            <div class="shot-stage" id="shotStage">
-              <img
-                class="shot-img"
-                src="assets/screenshot-dashboard.png"
-                alt="Captura del Dashboard de PulseCore"
-                onload="this.parentElement.classList.add('has-shot')"
-                onerror="this.remove()"
-              />
+            <!-- MAQUETA FIEL DE PULSECORE -->
+            <div class="app-mock card spotlight-card" id="interactiveStage">
+              <div class="mock-titlebar">
+                <div class="mock-tb-left">
+                  <span class="mock-logo mono">PULSECORE</span>
+                  <span class="mock-live mono">● LIVE · ADMIN</span>
+                </div>
+                <div class="mock-tb-right mono">
+                  <span class="mock-prof" id="simProfileTag">💼 Modo Normal</span>
+                  <span class="mock-win-dots"><i></i><i></i><i></i></span>
+                </div>
+              </div>
 
-              <!-- Fallback visual Dark Luxury mientras no exista assets/screenshot-dashboard.png -->
-              <div class="shot-fallback" aria-hidden="true">
-                <div class="mock-gauges">
-                  <div class="mock-g">
-                    <span class="mock-tag cyan">CPU</span>
-                    <div class="mock-ring cyan"><span class="mono">32%</span></div>
-                    <span class="mock-sub mono">54 °C · 4.6 GHz</span>
+              <div class="mock-body">
+                <!-- 4 Tacómetros 240° SVG reales -->
+                <div class="sim-gauges">
+                  <div class="sim-gauge-card">
+                    <div class="sg-head"><span class="sg-tag cyan">CPU</span><span class="sg-pill mono" id="sgCpuTemp">66 °C</span></div>
+                    <div class="sg-ring-wrap">
+                      <svg viewBox="0 0 120 100"><circle class="sg-track" cx="60" cy="56" r="40" transform="rotate(150 60 56)" /><circle class="sg-arc cyan" id="sgCpuArc" cx="60" cy="56" r="40" transform="rotate(150 60 56)" /></svg>
+                      <div class="sg-center mono"><strong id="sgCpuVal">48%</strong><span>USO</span></div>
+                    </div>
+                    <div class="sg-foot mono" id="sgCpuSub">4.3 GHz · Equilibrado</div>
                   </div>
-                  <div class="mock-g">
-                    <span class="mock-tag em">GPU</span>
-                    <div class="mock-ring em"><span class="mono">64%</span></div>
-                    <span class="mock-sub mono">58 °C · 4.2 GB</span>
+
+                  <div class="sim-gauge-card">
+                    <div class="sg-head"><span class="sg-tag em">GPU</span><span class="sg-pill mono" id="sgGpuTemp">67 °C</span></div>
+                    <div class="sg-ring-wrap">
+                      <svg viewBox="0 0 120 100"><circle class="sg-track" cx="60" cy="56" r="40" transform="rotate(150 60 56)" /><circle class="sg-arc em" id="sgGpuArc" cx="60" cy="56" r="40" transform="rotate(150 60 56)" /></svg>
+                      <div class="sg-center mono"><strong id="sgGpuVal">78%</strong><span>CARGA</span></div>
+                    </div>
+                    <div class="sg-foot mono" id="sgGpuSub">VRAM 5.4 / 8 GB</div>
                   </div>
-                  <div class="mock-g">
-                    <span class="mock-tag vio">RAM</span>
-                    <div class="mock-ring vio"><span class="mono">48%</span></div>
-                    <span class="mock-sub mono">15.4 / 32 GB</span>
+
+                  <div class="sim-gauge-card">
+                    <div class="sg-head"><span class="sg-tag vio">RAM</span><span class="sg-pill mono" id="sgRamPill">Moderada</span></div>
+                    <div class="sg-ring-wrap">
+                      <svg viewBox="0 0 120 100"><circle class="sg-track" cx="60" cy="56" r="40" transform="rotate(150 60 56)" /><circle class="sg-arc vio" id="sgRamArc" cx="60" cy="56" r="40" transform="rotate(150 60 56)" /></svg>
+                      <div class="sg-center mono"><strong id="sgRamVal">71%</strong><span>FÍSICA</span></div>
+                    </div>
+                    <div class="sg-foot mono" id="sgRamSub">11.4 / 16 GB</div>
                   </div>
-                  <div class="mock-g">
-                    <span class="mock-tag amb">SSD</span>
-                    <div class="mock-ring amb"><span class="mono">61%</span></div>
-                    <span class="mock-sub mono">380 GB libres</span>
+
+                  <div class="sim-gauge-card">
+                    <div class="sg-head"><span class="sg-tag amb">SSD C:</span><span class="sg-pill mono" id="sgDiskPill">Limpio</span></div>
+                    <div class="sg-ring-wrap">
+                      <svg viewBox="0 0 120 100"><circle class="sg-track" cx="60" cy="56" r="40" transform="rotate(150 60 56)" /><circle class="sg-arc amb" id="sgDiskArc" cx="60" cy="56" r="40" transform="rotate(150 60 56)" /></svg>
+                      <div class="sg-center mono"><strong id="sgDiskVal">62%</strong><span>USADO</span></div>
+                    </div>
+                    <div class="sg-foot mono" id="sgDiskSub">184 GB libres</div>
                   </div>
                 </div>
 
-                <div class="mock-bottom">
-                  <div class="mock-chart">
-                    <div class="mock-chart-head mono"><span>TELEMETRÍA 60s</span><span class="hud-cyan">CPU vs GPU</span></div>
-                    <svg viewBox="0 0 280 70" preserveAspectRatio="none">
-                      <defs>
-                        <linearGradient id="mGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stop-color="rgba(56,189,248,0.38)" />
-                          <stop offset="100%" stop-color="rgba(56,189,248,0)" />
-                        </linearGradient>
-                      </defs>
-                      <path d="M0 54 Q40 44 75 48 T150 32 T220 26 T280 22 L280 70 L0 70 Z" fill="url(#mGrad)" />
-                      <path d="M0 54 Q40 44 75 48 T150 32 T220 26 T280 22" fill="none" stroke="#38bdf8" stroke-width="2" />
-                      <path d="M0 60 Q45 52 90 38 T180 28 T280 34" fill="none" stroke="#10b981" stroke-width="1.8" />
-                    </svg>
-                  </div>
-                  <div class="mock-ready">
-                    <span class="mock-r-lbl mono">GAMING READINESS</span>
-                    <span class="mock-r-score mono">96</span>
-                    <div class="mock-leds">
-                      <i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i>
-                      <i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i>
+                <!-- Gráfico en tiempo real + Gaming Readiness -->
+                <div class="sim-lower">
+                  <div class="sim-chart-box">
+                    <div class="sim-chart-head">
+                      <span class="mono">ESTABILIDAD DE FRAMES &amp; LATENCIA (EN VIVO)</span>
+                      <span class="sim-delta mono" id="simDelta">Modo Normal · Sin optimizar</span>
                     </div>
+                    <div class="sim-canvas-wrap">
+                      <canvas id="simChart"></canvas>
+                    </div>
+                  </div>
+
+                  <div class="sim-ready-box">
+                    <span class="mono sg-muted">GAMING READINESS</span>
+                    <div class="sim-score-row">
+                      <span class="sim-score mono" id="simScore">72</span>
+                      <span class="sim-score-badge" id="simScoreBadge">Carga moderada</span>
+                    </div>
+                    <div class="sim-leds" id="simLeds"></div>
+                    <div class="sim-ready-hint mono" id="simHint">Probá activar ⚡ Simular PulseCore Boost arriba</div>
                   </div>
                 </div>
               </div>
+            </div>
+
+            <!-- CAPTURA REAL (se muestra si el usuario alterna a "Captura Real") -->
+            <div class="app-mock card" id="screenshotStage" hidden>
+              <img
+                id="realScreenshot"
+                src="assets/screenshot-dashboard.png"
+                alt="Captura real del Dashboard de PulseCore"
+                class="real-shot-img"
+              />
             </div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- ========== GRILLA DE FUNCIONES (BENTO GRID) ========== -->
+    <!-- ========== FRANJA DE AUTORIDAD Y COMPATIBILIDAD ========== -->
+    <section class="authority-strip">
+      <div class="container authority-inner mono">
+        <span>Windows 10 &amp; 11 (x64)</span>
+        <i>·</i>
+        <span>Steam &amp; Epic Auto-Detect</span>
+        <i>·</i>
+        <span>Seguro con EAC / Vanguard / BattlEye</span>
+        <i>·</i>
+        <span>ETW Nativo (0% Inyección)</span>
+        <i>·</i>
+        <span>Winget Integrado</span>
+        <i>·</i>
+        <span>Open Source Auditable</span>
+      </div>
+    </section>
+
+    <!-- ========== BENTO GRID CON MICRO-INTERFACES ========== -->
     <section class="section" id="funciones">
       <div class="container">
-        <div class="section-head">
-          <span class="sec-kicker mono">SUITE TODO-EN-UNO</span>
-          <h2>Diseñada para exprimir tu PC sin ensuciar Windows</h2>
-          <p>Cada módulo corre en código nativo C# / .NET con bajo consumo y sin procesos basura.</p>
+        <div class="section-head reveal">
+          <span class="sec-kicker mono">INGENIERÍA NATIVA EN C# / .NET</span>
+          <h2>Todo lo que tu PC gamer necesita, en un solo lugar</h2>
+          <p>Sin bloatware, sin cuentas obligatorias y con interfaces diseñadas para responder al instante.</p>
         </div>
 
         <div class="bento-grid">
-          <article class="card glow-card bento-card span-2">
-            <div class="bento-top">
-              <span class="bento-icon cyan">📊</span>
-              <span class="tag cyan mono">ETW PASIVO</span>
+          <!-- 1. Mini-HUD ETW -->
+          <article class="card spotlight-card bento-card span-2 reveal">
+            <div class="bento-head">
+              <span class="tag cyan mono">ETW PASIVO · 0% INYECCIÓN</span>
+              <span class="mono muted-sm">DXGI / D3D9</span>
             </div>
-            <h3>Mini-HUD sin inyección (ETW)</h3>
-            <p>Muestra <strong>FPS reales y 1% Low FPS</strong>, CPU, temperatura de GPU, RAM y Ping en una píldora flotante 100% XAML nativo con modo <em>Click-Through</em>. Cero DLLs inyectadas: compatible con cualquier anti-cheat.</p>
+            <h3>Mini-HUD Flotante con FPS y 1% Low</h3>
+            <p>Ventana 100% XAML nativo con consumo despreciable. Lee frames reales y <strong>1% Low FPS</strong> vía ETW de solo lectura, con modo <em>Click-Through</em> para que nunca moleste en partida.</p>
+            <div class="micro-ui micro-hud mono">
+              <span class="hud-dot"></span>
+              <span class="hud-fps">144 FPS</span>
+              <span class="hud-low">· 1% 118</span>
+              <span class="hud-sep"></span>
+              <span class="hud-cyan">CPU 32%</span>
+              <span class="hud-sep"></span>
+              <span class="hud-em">GPU 58°C</span>
+              <span class="micro-chip">🔒 Click-Through</span>
+            </div>
           </article>
 
-          <article class="card glow-card bento-card">
-            <div class="bento-top">
-              <span class="bento-icon em">🎮</span>
+          <!-- 2. Modo Juego -->
+          <article class="card spotlight-card bento-card reveal">
+            <div class="bento-head">
               <span class="tag em mono">STEAM &amp; EPIC</span>
             </div>
             <h3>Modo Juego Automático</h3>
-            <p>Autodetecta tus bibliotecas de Steam y Epic con portadas reales, activa Alto Rendimiento al abrir un juego y muestra un <strong>Resumen Post-Partida</strong> al cerrarlo.</p>
+            <p>Autodetecta tu biblioteca con portadas reales, activa Alto Rendimiento al abrir un juego y muestra un <strong>Resumen Post-Partida</strong> al cerrarlo.</p>
+            <div class="micro-ui micro-game mono">
+              <span class="mg-plat">EPIC</span>
+              <span class="mg-name">Fortnite</span>
+              <span class="mg-pill">⚡ Preparar y Jugar</span>
+            </div>
           </article>
 
-          <article class="card glow-card bento-card">
-            <div class="bento-top">
-              <span class="bento-icon vio">🛡️</span>
-              <span class="tag vio mono">REVERSIBLE</span>
+          <!-- 3. Suite Windows -->
+          <article class="card spotlight-card bento-card reveal">
+            <div class="bento-head">
+              <span class="tag vio mono">100% REVERSIBLE</span>
             </div>
             <h3>Suite de Windows Segura</h3>
-            <p>Debloat por Registro sin romper funciones del SO, Gestor de Inicio con respaldo automático y consolas en vivo para <strong>SFC /scannow</strong> y <strong>DISM</strong>.</p>
-          </article>
-
-          <article class="card glow-card bento-card">
-            <div class="bento-top">
-              <span class="bento-icon cyan">🌐</span>
-              <span class="tag cyan mono">LATENCIA</span>
+            <p>Debloat por Registro sin romper Windows, Gestor de Inicio respaldado y consolas en vivo para <strong>SFC /scannow</strong> y <strong>DISM</strong>.</p>
+            <div class="micro-ui micro-toggles mono">
+              <div class="mt-row"><span>Telemetría Windows</span><i class="mt-sw on"></i></div>
+              <div class="mt-row"><span>Anuncios Menú Inicio</span><i class="mt-sw on"></i></div>
+              <div class="mt-row"><span>Xbox Game DVR</span><i class="mt-sw on"></i></div>
             </div>
-            <h3>Red Avanzada</h3>
-            <p><strong>DNS Switcher</strong> con Benchmark en vivo (Cloudflare, Google, Quad9, DHCP), test de <strong>Packet Loss</strong> (20 pings) y <strong>Speedtest</strong> real integrado.</p>
           </article>
 
-          <article class="card glow-card bento-card">
-            <div class="bento-top">
-              <span class="bento-icon amb">🎯</span>
+          <!-- 4. Red Avanzada -->
+          <article class="card spotlight-card bento-card reveal">
+            <div class="bento-head">
+              <span class="tag cyan mono">LATENCIA REAL</span>
+            </div>
+            <h3>Red Avanzada &amp; Speedtest</h3>
+            <p><strong>DNS Switcher</strong> con Benchmark (Cloudflare, Google, Quad9, DHCP), test de <strong>Packet Loss</strong> (20 pings) y <strong>Speedtest</strong> integrado.</p>
+            <div class="micro-ui micro-net mono">
+              <div class="mn-bar"><span>Cloudflare 1.1.1.1</span><strong class="hud-em">11 ms</strong></div>
+              <div class="mn-bar"><span>Packet Loss (20p)</span><strong class="hud-cyan">0.0%</strong></div>
+            </div>
+          </article>
+
+          <!-- 5. Fortnite Pro -->
+          <article class="card spotlight-card bento-card reveal">
+            <div class="bento-head">
               <span class="tag amb mono">BACKUP AUTO</span>
             </div>
             <h3>Fortnite Pro</h3>
-            <p>Presets seguros (<em>Competitivo FPS</em> y <em>Calidad Visual</em>) sobre <code>GameUserSettings.ini</code> con respaldo original automático, límite de FPS y limpiador de Replays/Logs.</p>
+            <p>Presets seguros sobre <code>GameUserSettings.ini</code> con respaldo original intacto, límite de FPS y limpiador de Replays y Crash Logs.</p>
+            <div class="micro-ui micro-ini mono">
+              <span>bUseVSync=<b>False</b></span>
+              <span>sg.ShadowQuality=<b>0</b></span>
+              <span class="hud-em">✓ Backup original guardado</span>
+            </div>
           </article>
 
-          <article class="card glow-card bento-card span-2">
-            <div class="bento-top">
-              <span class="bento-icon em">📦</span>
-              <span class="tag em mono">WINGET + PERFILES</span>
+          <!-- 6. Apps Winget & Perfiles -->
+          <article class="card spotlight-card bento-card span-2 reveal">
+            <div class="bento-head">
+              <span class="tag em mono">WINGET + PERFILES 1-CLIC</span>
+              <span class="mono muted-sm">Recién formateado</span>
             </div>
-            <h3>Apps (<code>winget</code>) &amp; Perfiles 1-clic</h3>
-            <p>Ideal para PC recién formateada: instalador silencioso con pack gamer, <strong>buscador global de winget</strong>, <code>upgrade --all</code> en 1 clic, perfiles <strong>Competitivo / Trabajo</strong> y mantenimiento semanal automático.</p>
+            <h3>Buscador global de <code>winget</code>, Perfiles y Mantenimiento Semanal</h3>
+            <p>Instalá tu pack gamer en silencio, buscá cualquier app en todo el repositorio oficial de Windows, actualizá el PC entero con <code>upgrade --all</code> y alterná entre <strong>🎮 Competitivo</strong> y <strong>💼 Trabajo</strong> en 1 clic.</p>
+            <div class="micro-ui micro-term mono">
+              <span class="hud-cyan">$</span> winget install --id Discord.Discord --silent
+              <span class="micro-chip em">✓ Instalado</span>
+            </div>
           </article>
         </div>
       </div>
@@ -244,35 +329,32 @@
     <!-- ========== 100% SEGURO Y REVERSIBLE ========== -->
     <section class="section" id="seguridad">
       <div class="container">
-        <div class="section-head">
-          <span class="sec-kicker mono">CONFIANZA Y TRANSPARENCIA</span>
+        <div class="section-head reveal">
+          <span class="sec-kicker mono">ARQUITECTURA AUDITABLE</span>
           <h2>100% Seguro y Reversible</h2>
-          <p>Sin cajas negras ni scripts peligrosos que rompen Windows Update o disparan falsos positivos.</p>
+          <p>Diseñado para jugadores exigentes que quieren rendimiento sin arriesgar su cuenta ni su instalación de Windows.</p>
         </div>
 
         <div class="pillars-grid">
-          <article class="card glow-card pillar">
+          <article class="card spotlight-card pillar reveal">
             <div class="pillar-num mono">01</div>
             <h3>Código abierto auditable</h3>
-            <p>Todo el código fuente en C# y JS está publicado en GitHub para que cualquiera pueda revisarlo o compilarlo desde cero.</p>
+            <p>Todo el proyecto en C#, XAML y JS es público en GitHub. Podés inspeccionar cada servicio o compilar tu propio ejecutable.</p>
           </article>
-
-          <article class="card glow-card pillar">
+          <article class="card spotlight-card pillar reveal">
             <div class="pillar-num mono">02</div>
             <h3>Sin inyección en juegos</h3>
-            <p>Los FPS se leen mediante eventos ETW de solo lectura de Windows (DXGI/D3D9). Nunca engancha ni modifica memoria de un juego.</p>
+            <p>Los FPS y 1% Low se miden de forma 100% pasiva con ETW de Windows. Nunca toca ejecutables ni memoria de ningún juego.</p>
           </article>
-
-          <article class="card glow-card pillar">
+          <article class="card spotlight-card pillar reveal">
             <div class="pillar-num mono">03</div>
             <h3>Centro de Restauración</h3>
-            <p>Cada ajuste guarda su valor exacto previo para deshacerlo en 1 clic, además de crear Puntos de Restauración nativos de Windows.</p>
+            <p>Cada ajuste registra su valor previo exacto para deshacerlo en 1 clic, más creación de Puntos de Restauración nativos de Windows.</p>
           </article>
-
-          <article class="card glow-card pillar">
+          <article class="card spotlight-card pillar reveal">
             <div class="pillar-num mono">04</div>
             <h3>0 telemetría oculta</h3>
-            <p>PulseCore no recolecta ni envía datos personales. La única consulta externa opcional es verificar si hay una nueva release en GitHub.</p>
+            <p>Sin cuentas, sin tracking ni anuncios. Solo consulta opcionalmente la API pública de GitHub para avisarte si hay nueva versión.</p>
           </article>
         </div>
       </div>
@@ -281,19 +363,19 @@
     <!-- ========== FAQ INTERACTIVO ========== -->
     <section class="section" id="faq">
       <div class="container faq-container">
-        <div class="section-head">
+        <div class="section-head reveal">
           <span class="sec-kicker mono">PREGUNTAS FRECUENTES</span>
-          <h2>Todo lo que necesitás saber</h2>
+          <h2>Respuestas directas</h2>
         </div>
 
-        <div class="faq-list" id="faqList">
+        <div class="faq-list reveal">
           <div class="card faq-item">
             <button class="faq-q" aria-expanded="false">
               <span>¿Es seguro con Easy Anti-Cheat, Vanguard o BattlEye?</span>
               <span class="faq-chev">+</span>
             </button>
             <div class="faq-a">
-              <p>Sí. PulseCore <strong>no inyecta DLLs ni lee/modifica memoria</strong> de ningún juego. El contador de FPS y 1% Low usa ETW (Event Tracing for Windows) en modo pasivo de solo lectura, y el módulo Fortnite Pro solo edita el archivo local de configuración <code>GameUserSettings.ini</code>.</p>
+              <p>Sí. PulseCore <strong>no inyecta DLLs ni modifica memoria</strong> de ningún juego. El contador de FPS y 1% Low escucha eventos ETW de DXGI/D3D9 en modo solo lectura, y Fortnite Pro únicamente edita <code>GameUserSettings.ini</code>.</p>
             </div>
           </div>
 
@@ -303,7 +385,7 @@
               <span class="faq-chev">+</span>
             </button>
             <div class="faq-a">
-              <p>Windows exige elevación para tres tareas legítimas del sistema: leer temperaturas reales de CPU/GPU desde los sensores de hardware (LibreHardwareMonitor), escuchar eventos ETW de DXGI para el contador de FPS, y aplicar cambios reales como planes de energía, DNS, limpieza de <code>C:\Windows\Temp</code> o SFC/DISM.</p>
+              <p>Windows exige elevación para leer sensores reales de temperatura (LibreHardwareMonitor), abrir la sesión ETW de DXGI para FPS y aplicar cambios del sistema (planes de energía, DNS, limpieza de <code>C:\Windows\Temp</code> y SFC/DISM).</p>
             </div>
           </div>
 
@@ -313,7 +395,7 @@
               <span class="faq-chev">+</span>
             </button>
             <div class="faq-a">
-              <p>Sí, todo es reversible. El <strong>Centro de Restauración</strong> registra el valor exacto anterior de cada ajuste del Check-up y Debloat para deshacerlo en 1 clic, el Modo Juego restaura tu plan de energía al cerrar la partida, y Fortnite Pro guarda tu <code>GameUserSettings.original.ini</code> intacto antes del primer cambio.</p>
+              <p>Sí. El <strong>Centro de Restauración</strong> guarda el valor exacto anterior de cada cambio del Check-up y Debloat, el Modo Juego restaura tu plan al cerrar la partida y Fortnite Pro conserva <code>GameUserSettings.original.ini</code> intacto.</p>
             </div>
           </div>
 
@@ -323,25 +405,42 @@
               <span class="faq-chev">+</span>
             </button>
             <div class="faq-a">
-              <p>100% gratis, sin suscripciones, sin funciones bloqueadas ni anuncios. Podés descargar el instalador desde GitHub Releases o compilar el proyecto vos mismo con el SDK de .NET.</p>
+              <p>100% gratis y open-source. Sin licencias, sin funciones bloqueadas ni publicidad.</p>
             </div>
           </div>
         </div>
 
-        <!-- CTA FINAL -->
-        <div class="cta-box card glow-card">
+        <div class="cta-box card spotlight-card reveal">
           <div>
-            <h3>¿Listo para afinar tu PC?</h3>
-            <p>Descargá la última versión oficial de PulseCore para Windows 10 y 11 (x64).</p>
+            <h3>¿Listo para probar PulseCore?</h3>
+            <p>Instalador oficial para Windows 10 y 11 (x64) directo desde GitHub Releases.</p>
           </div>
           <a class="btn btn-primary btn-lg" data-download-btn href="https://github.com/alexlemos2217/PulseCore/releases/latest">
             <span class="btn-beam" aria-hidden="true"></span>
-            <span>⬇ Descargar para Windows</span>
+            <span>⬇ Descargar PulseCore</span>
           </a>
         </div>
       </div>
     </section>
   </main>
+
+  <!-- ========== MODAL CHANGELOG ========== -->
+  <div class="modal-overlay" id="changelogModal" hidden role="dialog" aria-modal="true" aria-labelledby="clTitle">
+    <article class="card modal-card">
+      <div class="modal-head">
+        <div>
+          <span class="tag cyan mono" id="clTag">v1.8.0</span>
+          <h3 id="clTitle">Notas de la Release</h3>
+        </div>
+        <button class="modal-close" id="btnCloseChangelog" type="button" aria-label="Cerrar">✕</button>
+      </div>
+      <div class="modal-body mono" id="clBody">Cargando notas desde GitHub Releases…</div>
+      <div class="modal-foot">
+        <a class="btn btn-ghost btn-sm" id="clReleaseLink" href="https://github.com/alexlemos2217/PulseCore/releases/latest" target="_blank" rel="noopener">Ver en GitHub</a>
+        <a class="btn btn-primary btn-sm" data-download-btn href="https://github.com/alexlemos2217/PulseCore/releases/latest">⬇ Descargar instalador</a>
+      </div>
+    </article>
+  </div>
 
   <!-- ========== FOOTER ========== -->
   <footer class="footer">
@@ -349,7 +448,7 @@
       <div class="footer-left">
         <span class="brand-name">PULSECORE</span>
         <span class="ver-pill mono" data-version-badge>v1.8.0</span>
-        <span class="footer-copy">Hecho con C# / .NET, WPF &amp; WebView2.</span>
+        <span class="footer-copy">Open Source · C# / .NET, WPF &amp; WebView2.</span>
       </div>
       <div class="footer-links">
         <a href="https://github.com/alexlemos2217/PulseCore/releases" target="_blank" rel="noopener">GitHub Releases</a>
