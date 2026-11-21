@@ -42,6 +42,7 @@ public partial class MainWindow : Window
     private readonly WingetService _winget = new();
     private readonly UpdateService _updater = new();
     private readonly ProfileService _profiles = new();
+    private readonly LicenseService _license = new();
     private readonly FpsMonitorService _fps = new();
     private readonly SystemCheckupService _checkup;
     private readonly WindowsSuiteService _winSuite;
@@ -199,21 +200,32 @@ public partial class MainWindow : Window
             try { _telemetry = new TelemetryService(); }
             catch (Exception ex) { await ReportErrorAsync("init", ex, ct); return; }
 
-            using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(1000));
+            using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(500));
+            var tickCount = 0;
             do
             {
                 try
                 {
-                    var snapshot = _telemetry.GetSnapshot();
-                    _lastSnapshot = snapshot;
-                    _gameMode.RecordTelemetrySample(snapshot.Cpu.UsagePercent, snapshot.Gpu.TemperatureC, snapshot.Ram.UsedGb);
+                    var isFullTelemetryTick = (tickCount++ % 2 == 0) || _lastSnapshot is null;
+                    TelemetrySnapshot snapshot;
+                    if (isFullTelemetryTick)
+                    {
+                        snapshot = _telemetry.GetSnapshot();
+                        _lastSnapshot = snapshot;
+                        _gameMode.RecordTelemetrySample(snapshot.Cpu.UsagePercent, snapshot.Gpu.TemperatureC, snapshot.Ram.UsedGb);
+                    }
+                    else
+                    {
+                        snapshot = _lastSnapshot!;
+                    }
 
                     var hudVisible = false;
                     var (fps, onePctLow) = _fps.GetMetrics();
+                    var proLow = _license.IsPro ? onePctLow : 0;
                     await Dispatcher.InvokeAsync(() =>
                     {
                         hudVisible = _hud is { IsVisible: true };
-                        if (hudVisible) _hud!.UpdateMetrics(snapshot, _lastHudPingMs, fps, onePctLow);
+                        if (hudVisible) _hud!.UpdateMetrics(snapshot, _lastHudPingMs, fps, proLow);
                     }, System.Windows.Threading.DispatcherPriority.Normal, ct);
 
                     if (hudVisible && Environment.TickCount64 - _lastHudPingTick >= 5000)
@@ -222,8 +234,11 @@ public partial class MainWindow : Window
                         _ = Task.Run(ProbeHudPingAsync, ct);
                     }
 
-                    var json = JsonSerializer.Serialize(new { type = "telemetry", data = snapshot }, JsonOptions);
-                    await PostToUiAsync(json, ct);
+                    if (isFullTelemetryTick)
+                    {
+                        var json = JsonSerializer.Serialize(new { type = "telemetry", data = snapshot, fps, onePercentLow = proLow }, JsonOptions);
+                        await PostToUiAsync(json, ct);
+                    }
                 }
                 catch (OperationCanceledException) { throw; }
                 catch (Exception ex)
@@ -245,7 +260,8 @@ public partial class MainWindow : Window
             StartTelemetryLoop();
             _gameMode.Start();
             _ = CheckForUpdatesAsync();
-            _ = RunDueMaintenanceAsync();
+            if (_license.IsPro) _ = RunDueMaintenanceAsync();
+            if (_license.NeedsBackgroundRevalidation) _ = RevalidateLicenseAsync();
         }
         else MessageBox.Show($"Falló la carga de la UI: {e.WebErrorStatus}", "PulseCore");
     }
@@ -347,8 +363,36 @@ public partial class MainWindow : Window
                 _ = RunActionAsync("get_fortnite_status", "fortnite_status", false,
                     () => Task.FromResult<object>(_fortnite.GetStatus()));
                 break;
+            case "license:getStatus":
+                Send("license_status", _license.GetStatus());
+                break;
+            case "license:activate":
+            {
+                var key = PayloadString(payload, "key");
+                _ = Task.Run(async () =>
+                {
+                    var res = await _license.ActivateAsync(key, _cts.Token);
+                    await Dispatcher.InvokeAsync(() =>
+                    {
+                        Send("license_activate_result", res);
+                        Send("license_status", res.Status);
+                    });
+                });
+                break;
+            }
+            case "license:deactivate":
+            {
+                var st = _license.DeactivateLocal();
+                Send("license_status", st);
+                break;
+            }
+            case "license:openCheckout":
+                try { Process.Start(new ProcessStartInfo(LicenseService.CheckoutUrl) { UseShellExecute = true }); }
+                catch (Exception) { }
+                break;
             case "apply_fortnite_preset":
             {
+                if (!RequirePro("apply_fortnite_preset", "Fortnite Pro")) break;
                 var preset = PayloadString(payload, "preset");
                 var fps = PayloadInt(payload, "fpsLimit");
                 var ro = PayloadBool(payload, "setReadOnly");
@@ -357,11 +401,13 @@ public partial class MainWindow : Window
                 break;
             }
             case "restore_fortnite_backup":
+                if (!RequirePro("restore_fortnite_backup", "Fortnite Pro")) break;
                 _ = RunActionAsync("restore_fortnite_backup", "fortnite_restore_result", true,
                     () => Task.FromResult<object>(_fortnite.RestoreBackup()));
                 break;
             case "clean_fortnite_files":
             {
+                if (!RequirePro("clean_fortnite_files", "Fortnite Pro")) break;
                 var demos = PayloadBool(payload, "cleanDemos");
                 var logs = PayloadBool(payload, "cleanLogs");
                 _ = RunActionAsync("clean_fortnite_files", "fortnite_clean_result", true,
@@ -369,6 +415,7 @@ public partial class MainWindow : Window
                 break;
             }
             case "run_speedtest":
+                if (!RequirePro("run_speedtest", "Speedtest Integrado")) break;
                 _ = Task.Run(async () =>
                 {
                     var res = await _netOpt.RunSpeedTestAsync(
@@ -379,6 +426,7 @@ public partial class MainWindow : Window
                 break;
             case "search_winget_apps":
             {
+                if (!RequirePro("search_winget_apps", "Buscador global de winget")) break;
                 var q = PayloadString(payload, "query");
                 _ = RunActionAsync("search_winget_apps", "winget_search_result", false,
                     async () => await _winget.SearchPackagesAsync(q, _cts.Token));
@@ -390,21 +438,25 @@ public partial class MainWindow : Window
                 break;
             case "apply_quick_profile":
             {
+                if (!RequirePro("apply_quick_profile", "Perfiles 1-clic")) break;
                 var profile = PayloadString(payload, "profile") ?? "";
                 _ = ApplyQuickProfileAsync(profile);
                 break;
             }
             case "toggle_weekly_maintenance":
             {
+                if (!RequirePro("toggle_weekly_maintenance", "Mantenimiento Semanal Automático")) break;
                 var enabled = PayloadBool(payload, "enabled");
                 _ = RunActionAsync("toggle_weekly_maintenance", "profile_settings", false,
                     () => Task.FromResult<object>(_profiles.SetWeeklyMaintenance(enabled)));
                 break;
             }
             case "export_config":
+                if (!RequirePro("export_config", "Exportar configuración")) break;
                 ExportConfigDialog();
                 break;
             case "import_config":
+                if (!RequirePro("import_config", "Importar configuración")) break;
                 ImportConfigDialog();
                 break;
             case "get_dns_state":
@@ -412,11 +464,13 @@ public partial class MainWindow : Window
                     () => Task.FromResult<object>(_netOpt.GetDnsState()));
                 break;
             case "benchmark_dns":
+                if (!RequirePro("benchmark_dns", "DNS Benchmark & Switcher")) break;
                 _ = RunActionAsync("benchmark_dns", "dns_state", false,
                     async () => await _netOpt.BenchmarkDnsAsync(_cts.Token));
                 break;
             case "apply_dns":
             {
+                if (!RequirePro("apply_dns", "DNS Benchmark & Switcher")) break;
                 var prov = PayloadString(payload, "providerId");
                 _ = RunActionAsync("apply_dns", "dns_apply_result", true,
                     () => Task.FromResult<object>(_netOpt.ApplyDns(prov)));
@@ -424,6 +478,7 @@ public partial class MainWindow : Window
             }
             case "run_packet_loss":
             {
+                if (!RequirePro("run_packet_loss", "Test de Packet Loss")) break;
                 var host = PayloadString(payload, "host");
                 _ = Task.Run(async () =>
                 {
@@ -448,6 +503,7 @@ public partial class MainWindow : Window
                 break;
             case "toggle_debloat_item":
             {
+                if (!RequirePro("toggle_debloat_item", "Suite de Windows (Debloat)")) break;
                 var id = PayloadString(payload, "id");
                 var enable = PayloadBool(payload, "enable");
                 _ = RunActionAsync("toggle_debloat_item", "debloat_result", true,
@@ -460,6 +516,7 @@ public partial class MainWindow : Window
                 break;
             case "toggle_startup_app":
             {
+                if (!RequirePro("toggle_startup_app", "Suite de Windows (Inicio)")) break;
                 var name = PayloadString(payload, "name");
                 var location = PayloadString(payload, "location");
                 var enable = PayloadBool(payload, "enable");
@@ -469,6 +526,7 @@ public partial class MainWindow : Window
             }
             case "run_windows_repair":
             {
+                if (!RequirePro("run_windows_repair", "Reparación de Windows (SFC / DISM)")) break;
                 var tool = PayloadString(payload, "tool");
                 _ = Task.Run(() => _winSuite.RunRepairToolAsync(
                     tool,
@@ -484,6 +542,11 @@ public partial class MainWindow : Window
             case "install_winget_apps":
             {
                 var ids = PayloadStrings(payload, "packageIds").ToList();
+                if (!_license.IsPro && ids.Any(id => !WingetService.IsCuratedId(id)))
+                {
+                    RequirePro("install_winget_apps", "Instalación desde Buscador Global de winget");
+                    break;
+                }
                 _ = Task.Run(() => _winget.InstallPackagesAsync(
                     ids,
                     ev => Dispatcher.InvokeAsync(() => Send("winget_output", ev)),
@@ -492,6 +555,7 @@ public partial class MainWindow : Window
                 break;
             }
             case "upgrade_all_winget_apps":
+                if (!RequirePro("upgrade_all_winget_apps", "Actualizar todas las apps en 1 clic")) break;
                 _ = Task.Run(() => _winget.UpgradeAllAsync(
                     ev => Dispatcher.InvokeAsync(() => Send("winget_output", ev)),
                     done => Dispatcher.InvokeAsync(() => Send("winget_completed", done)),
@@ -879,6 +943,25 @@ public partial class MainWindow : Window
     private void SendWindowState() =>
         Send("window.state", new { maximized = WindowState == WindowState.Maximized });
 
+    private bool RequirePro(string action, string featureName)
+    {
+        if (_license.IsPro) return true;
+        Send("pro_required", new
+        {
+            action,
+            feature = featureName,
+            message = $"“{featureName}” es una función de PulseCore Pro."
+        });
+        return false;
+    }
+
+    private async Task RevalidateLicenseAsync()
+    {
+        var valid = await _license.ValidateAsync(_cts.Token);
+        if (!valid)
+            await Dispatcher.InvokeAsync(() => Send("license_status", _license.GetStatus()));
+    }
+
     private async Task RunDueMaintenanceAsync()
     {
         try
@@ -977,7 +1060,11 @@ public partial class MainWindow : Window
         {
             _fps.Start();
             _hud.Show();
-            if (_lastSnapshot is { } snap) _hud.UpdateMetrics(snap, _lastHudPingMs, _fps.CurrentFps);
+            if (_lastSnapshot is { } snap)
+            {
+                var (fps, onePct) = _fps.GetMetrics();
+                _hud.UpdateMetrics(snap, _lastHudPingMs, fps, _license.IsPro ? onePct : 0);
+            }
             _lastHudPingTick = 0; // dispara medición de ping inmediata
         }
         SendHudState();

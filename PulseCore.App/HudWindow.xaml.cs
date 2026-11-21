@@ -43,7 +43,7 @@ public partial class HudWindow : Window
     {
         if (fps > 0)
         {
-            TxtFps.Text = $"{fps} FPS";
+            TxtFps.Text = $"{fps}";
             TxtFps.Foreground = fps >= 60 ? EmeraldBrush : fps >= 30 ? AmberBrush : RedBrush;
             if (onePercentLow > 0)
             {
@@ -58,7 +58,7 @@ public partial class HudWindow : Window
         }
         else
         {
-            TxtFps.Text = "-- FPS";
+            TxtFps.Text = "--";
             TxtFps.Foreground = MutedBrush;
             TxtOnePct.Visibility = Visibility.Collapsed;
         }

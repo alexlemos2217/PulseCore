@@ -80,6 +80,9 @@ public sealed class WingetService
 
     public bool IsBusy => _gate.CurrentCount == 0;
 
+    public static bool IsCuratedId(string? id) =>
+        !string.IsNullOrWhiteSpace(id) && Catalog.Any(a => a.Id.Equals(id.Trim(), StringComparison.OrdinalIgnoreCase));
+
     public WingetCatalogResult GetCatalog()
     {
         var (available, version) = CheckWinget();

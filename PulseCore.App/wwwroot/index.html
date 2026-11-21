@@ -57,6 +57,80 @@
     </article>
   </div>
 
+  <!-- MODAL PULSECORE PRO (ACTIVACIÓN Y LICENCIA v2.0.0) -->
+  <div class="pg-overlay" id="proModal" hidden role="dialog" aria-modal="true" aria-labelledby="proModalTitle">
+    <article class="card pro-modal">
+      <div class="pg-head">
+        <div>
+          <span class="card-tag pro-gold" id="proModalTag">PULSECORE PRO</span>
+          <h2 class="pg-title" id="proModalTitle">Desbloqueá todo el potencial de tu PC</h2>
+          <p class="pg-sub" id="proModalSub">Licencia de por vida · Hasta 2 PCs · Sin suscripciones</p>
+        </div>
+        <button class="pg-close" id="btnCloseProModal" title="Cerrar" aria-label="Cerrar modal Pro">✕</button>
+      </div>
+
+      <!-- VISTA FREE: BENEFICIOS + COMPRA + ACTIVACIÓN -->
+      <div class="pro-view" id="proModalFree">
+        <div class="pro-feature-banner" id="proFeatureBanner" hidden>
+          <span>🔒</span>
+          <span id="proFeatureBannerText">Esta función requiere PulseCore Pro.</span>
+        </div>
+
+        <ul class="pro-benefits">
+          <li><strong>1% Low FPS</strong> en tiempo real dentro del Mini-HUD flotante</li>
+          <li><strong>Fortnite Pro</strong>: presets competitivos, backup automático y limpieza</li>
+          <li><strong>Suite de Windows</strong>: Debloat reversible, Inicio y reparación SFC/DISM</li>
+          <li><strong>Red Avanzada</strong>: DNS Benchmark &amp; Switcher, Packet Loss y Speedtest</li>
+          <li><strong>Perfiles 1-clic</strong>, Exportar/Importar y Mantenimiento Semanal</li>
+          <li><strong>Buscador global de winget</strong> y Actualizar todo el PC en 1 clic</li>
+        </ul>
+
+        <button class="action-btn pro-cta" id="btnBuyPro" type="button">
+          <span>⚡ Comprar Licencia Pro</span>
+        </button>
+
+        <div class="pro-divider"><span>¿Ya tenés una clave?</span></div>
+
+        <form class="pro-activate-form" id="proActivateForm" autocomplete="off">
+          <input class="gm-input mono" id="proKeyInput" type="text" maxlength="80" placeholder="XXXXXXXX-XXXXXXXX-XXXXXXXX-XXXXXXXX" />
+          <button class="action-btn primary" id="btnActivatePro" type="submit">
+            <span class="btn-spin"></span>
+            <span id="btnActivateProLabel">Activar</span>
+          </button>
+        </form>
+        <div class="pro-msg mono" id="proModalMsg" hidden></div>
+      </div>
+
+      <!-- VISTA PRO ACTIVA: DETALLE DE LICENCIA -->
+      <div class="pro-view" id="proModalActive" hidden>
+        <div class="pro-active-hero">
+          <span class="pro-active-badge mono">★ PULSECORE PRO ACTIVO</span>
+          <p class="pro-active-note" id="proStatusNote">Licencia verificada y cifrada en este equipo.</p>
+        </div>
+
+        <div class="pro-details">
+          <div class="pro-detail-row">
+            <span class="pro-detail-lbl">CLAVE</span>
+            <span class="pro-detail-val mono" id="proMaskedKey">—</span>
+          </div>
+          <div class="pro-detail-row">
+            <span class="pro-detail-lbl">CORREO</span>
+            <span class="pro-detail-val mono" id="proEmail">—</span>
+          </div>
+          <div class="pro-detail-row">
+            <span class="pro-detail-lbl">HWID</span>
+            <span class="pro-detail-val mono" id="proHwid">—</span>
+          </div>
+        </div>
+
+        <div class="pro-active-foot">
+          <button class="action-btn danger-ghost" id="btnDeactivatePro" type="button">Quitar licencia de esta PC</button>
+          <button class="action-btn primary" id="btnOkProModal" type="button">Listo</button>
+        </div>
+      </div>
+    </article>
+  </div>
+
   <!-- ========== BARRA SUPERIOR CUSTOM ========== -->
   <header class="titlebar" id="titlebar">
     <div class="tb-left" id="dragLeft">
@@ -96,13 +170,18 @@
       </div>
     </div>
 
-    <div class="tb-profiles" role="group" aria-label="Perfiles rápidos">
+    <div class="tb-profiles" role="group" aria-label="Perfiles rápidos" data-pro-feature="Perfiles 1-clic">
       <button class="tb-prof-btn" id="btnProfComp" data-qprof="competitive" title="Alto Rendimiento + Boost Rápido + Mostrar Mini-HUD">🎮 Competitivo</button>
       <button class="tb-prof-btn" id="btnProfWork" data-qprof="work" title="Plan Equilibrado + Ocultar Mini-HUD">💼 Trabajo</button>
+      <span class="pro-badge mono">PRO</span>
     </div>
 
     <button class="tb-hud-btn" id="btnToggleHud" title="Mostrar u ocultar el Mini-HUD flotante">
       <span>📊</span><span>Mini-HUD</span>
+    </button>
+
+    <button class="tb-pro-btn" id="btnProStatus" type="button" title="Activar o administrar PulseCore Pro">
+      <span>⚡ Hazte Pro</span>
     </button>
 
     <div class="tb-controls">
@@ -160,6 +239,7 @@
             <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
           </svg>
           <span>Fortnite Pro</span>
+          <span class="pro-badge mono nav-pro">PRO</span>
         </button>
         <button class="nav-item" data-view="lab">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -183,6 +263,7 @@
             <rect x="3" y="13" width="8" height="8" rx="1.5" /><rect x="13" y="13" width="8" height="8" rx="1.5" />
           </svg>
           <span>Windows</span>
+          <span class="pro-badge mono nav-pro">PRO</span>
         </button>
         <button class="nav-item" data-view="checkup">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -313,7 +394,7 @@
         <div class="sys-chip">
           <div class="sys-chip-row">
             <span class="sys-machine" id="sbMachine">PC Local</span>
-            <span class="sys-ver mono">v1.8.0</span>
+            <span class="sys-ver mono">v2.0.0</span>
           </div>
           <div class="sys-meta mono" id="sbMeta">Inicializando…</div>
           <div class="sys-source mono" id="sbSource" title="Motor de sensores activo">Driver: —</div>
@@ -721,15 +802,15 @@
           <article class="card glow-card net-card">
             <div class="panel-head">
               <div>
-                <h2 class="panel-title">DNS Switcher &amp; Benchmark</h2>
+                <h2 class="panel-title">DNS Switcher &amp; Benchmark <span class="pro-badge mono">PRO</span></h2>
                 <p class="panel-sub mono" id="dnsIfaceInfo">Interfaz: detectando…</p>
               </div>
-              <button class="action-btn primary" id="btnBenchDns">
+              <button class="action-btn primary" id="btnBenchDns" data-pro-feature="DNS Switcher & Benchmark">
                 <span class="btn-spin"></span>
                 <span id="btnBenchDnsLabel">⚡ Medir mejor DNS</span>
               </button>
             </div>
-            <div class="dns-grid" id="dnsGrid">
+            <div class="dns-grid" id="dnsGrid" data-pro-feature="DNS Switcher & Benchmark">
               <div class="empty-inline mono">Leyendo configuración DNS…</div>
             </div>
           </article>
@@ -737,7 +818,7 @@
           <article class="card glow-card net-card">
             <div class="panel-head">
               <div>
-                <h2 class="panel-title">Test de Pérdida de Paquetes</h2>
+                <h2 class="panel-title">Test de Pérdida de Paquetes <span class="pro-badge mono">PRO</span></h2>
                 <p class="panel-sub">Ráfaga de 20 pings consecutivos (200 ms) para medir estabilidad</p>
               </div>
               <div class="head-actions">
@@ -746,7 +827,7 @@
                   <button class="mode-btn" data-host="8.8.8.8">8.8.8.8</button>
                   <button class="mode-btn" data-host="9.9.9.9">9.9.9.9</button>
                 </div>
-                <button class="action-btn primary" id="btnRunPl">
+                <button class="action-btn primary" id="btnRunPl" data-pro-feature="Test de Pérdida de Paquetes">
                   <span class="btn-spin"></span>
                   <span id="btnRunPlLabel">Probar</span>
                 </button>
@@ -786,10 +867,10 @@
         <article class="card glow-card speed-card">
           <div class="panel-head">
             <div>
-              <h2 class="panel-title">Speedtest Integrado</h2>
+              <h2 class="panel-title">Speedtest Integrado <span class="pro-badge mono">PRO</span></h2>
               <p class="panel-sub" id="stStatus">Medición real de descarga (25 MB) y subida (5 MB) contra Cloudflare Speed</p>
             </div>
-            <button class="action-btn primary" id="btnRunSpeed">
+            <button class="action-btn primary" id="btnRunSpeed" data-pro-feature="Speedtest Integrado">
               <span class="btn-spin"></span>
               <span id="btnRunSpeedLabel">🚀 Iniciar Speedtest</span>
             </button>
@@ -853,7 +934,7 @@
       <section class="view" id="view-fortnite">
         <div class="view-header">
           <div>
-            <h1>Fortnite Pro</h1>
+            <h1>Fortnite Pro <span class="pro-badge mono">PRO</span></h1>
             <p>Presets competitivos sobre tu GameUserSettings.ini con backup automático. No toca el juego ni su memoria.</p>
           </div>
           <div class="gm-badge off" id="fnBadge">
@@ -898,13 +979,13 @@
             </div>
             <label class="switch"><input type="checkbox" id="fnReadOnly" /><span></span></label>
           </div>
-          <button class="action-btn" id="btnFnRestore" disabled>
+          <button class="action-btn" id="btnFnRestore" disabled data-pro-feature="Fortnite Pro">
             <span class="btn-spin"></span><span id="btnFnRestoreLabel">Restaurar Backup Original</span>
           </button>
         </article>
 
         <!-- PRESETS -->
-        <div class="fn-presets">
+        <div class="fn-presets" data-pro-feature="Fortnite Pro">
           <article class="card glow-card fn-preset" data-accent="competitive">
             <div class="fn-preset-top">
               <span class="card-tag emerald">COMPETITIVO FPS</span>
@@ -958,7 +1039,7 @@
               <div class="fn-clean-size"><div class="mono fn-size-val" id="fnLogsSize">—</div><div class="mono fn-size-files" id="fnLogsFiles">—</div></div>
             </label>
           </div>
-          <button class="action-btn primary" id="btnFnClean">
+          <button class="action-btn primary" id="btnFnClean" data-pro-feature="Limpiador de Fortnite Pro">
             <span class="btn-spin"></span><span id="btnFnCleanLabel">Limpiar archivos de Fortnite</span>
           </button>
         </article>
@@ -1049,9 +1130,10 @@
           </div>
           <div class="head-actions">
             <span class="mini-tag mono" id="wgStatusPill">Verificando winget…</span>
-            <button class="action-btn" id="btnWgUpgradeAll">
+            <button class="action-btn" id="btnWgUpgradeAll" data-pro-feature="Actualizar todas las apps">
               <span class="btn-spin"></span>
               <span id="btnWgUpgradeLabel">🔄 Actualizar todas las apps del PC</span>
+              <span class="pro-badge mono">PRO</span>
             </button>
             <button class="action-btn primary" id="btnWgInstall" disabled>
               <span class="btn-spin"></span>
@@ -1069,12 +1151,13 @@
         </div>
 
         <!-- BUSCADOR GLOBAL DE WINGET (v1.8.0) -->
-        <article class="card glow-card wg-search-card">
+        <article class="card glow-card wg-search-card" data-pro-feature="Buscador global de winget">
           <form class="wg-search-form" id="wgSearchForm" autocomplete="off">
             <input class="gm-input" id="wgSearchInput" type="text" maxlength="60" placeholder="Buscar cualquier app en winget (ej. Firefox, Notepad++, WinRAR, GeForce)…" />
             <button class="action-btn primary" id="btnWgSearch" type="submit">
               <span class="btn-spin"></span>
               <span id="btnWgSearchLabel">🔍 Buscar en winget</span>
+              <span class="pro-badge mono">PRO</span>
             </button>
           </form>
           <div class="wg-search-results" id="wgSearchResults" hidden></div>
@@ -1099,7 +1182,7 @@
       <section class="view" id="view-windows">
         <div class="view-header">
           <div>
-            <h1>Suite de Sistema Windows</h1>
+            <h1>Suite de Sistema Windows <span class="pro-badge mono">PRO</span></h1>
             <p>Debloat seguro 100% reversible, gestor de arranque y reparación oficial SFC / DISM.</p>
           </div>
           <div class="mode-switch" id="winSubTabs" role="tablist">
@@ -1111,7 +1194,7 @@
 
         <!-- SUB-PESTAÑA 1: DEBLOAT SEGURO -->
         <div class="win-sub active" id="winSubDebloat">
-          <div class="win-debloat-list" id="debloatList">
+          <div class="win-debloat-list" id="debloatList" data-pro-feature="Debloat Seguro de Windows">
             <div class="empty-inline mono">Leyendo claves del Registro…</div>
           </div>
         </div>
@@ -1129,7 +1212,7 @@
                 <button class="action-btn small" id="btnRefreshStartup">Actualizar</button>
               </div>
             </div>
-            <div class="startup-list" id="startupList">
+            <div class="startup-list" id="startupList" data-pro-feature="Gestor de Inicio de Windows">
               <div class="empty-inline mono">Cargando aplicaciones de inicio…</div>
             </div>
           </article>
@@ -1145,7 +1228,7 @@
               </div>
               <h3>Escaneo SFC</h3>
               <p>Comprueba y repara archivos protegidos del sistema operativo Windows dañados o faltantes.</p>
-              <button class="action-btn primary" id="btnRunSfc">
+              <button class="action-btn primary" id="btnRunSfc" data-pro-feature="Reparación SFC / DISM">
                 <span class="btn-spin"></span>
                 <span id="btnRunSfcLabel">Ejecutar SFC</span>
               </button>
@@ -1158,7 +1241,7 @@
               </div>
               <h3>Reparación DISM</h3>
               <p>Repara la imagen base de Windows desde Windows Update para corregir errores profundos del sistema.</p>
-              <button class="action-btn primary violet" id="btnRunDism">
+              <button class="action-btn primary violet" id="btnRunDism" data-pro-feature="Reparación SFC / DISM">
                 <span class="btn-spin"></span>
                 <span id="btnRunDismLabel">Ejecutar DISM</span>
               </button>
@@ -1240,16 +1323,16 @@
         <article class="card glow-card ck-maint-card">
           <div class="ck-maint-row">
             <div>
-              <h2 class="panel-title">Mantenimiento Semanal Automático</h2>
+              <h2 class="panel-title">Mantenimiento Semanal Automático <span class="pro-badge mono">PRO</span></h2>
               <p class="panel-sub" id="weeklyMaintSub">Limpia automáticamente temporales seguros y caché DNS una vez cada 7 días al iniciar.</p>
             </div>
-            <label class="switch"><input type="checkbox" id="chkWeeklyMaint" /><span></span></label>
+            <label class="switch" data-pro-feature="Mantenimiento Semanal Automático"><input type="checkbox" id="chkWeeklyMaint" /><span></span></label>
           </div>
           <div class="ck-maint-io">
             <span class="panel-sub">Respaldo portátil de perfiles y juegos de PulseCore (.json)</span>
             <div class="head-actions">
-              <button class="action-btn small" id="btnExportConfig">Exportar configuración</button>
-              <button class="action-btn small" id="btnImportConfig">Importar configuración</button>
+              <button class="action-btn small" id="btnExportConfig" data-pro-feature="Exportar / Importar configuración">Exportar configuración</button>
+              <button class="action-btn small" id="btnImportConfig" data-pro-feature="Exportar / Importar configuración">Importar configuración</button>
             </div>
           </div>
         </article>
@@ -1307,6 +1390,7 @@
   <script src="apps.js"></script>
   <script src="windows.js"></script>
   <script src="network.js"></script>
+  <script src="license.js"></script>
   <script src="mascot.js"></script>
 </body>
 </html>

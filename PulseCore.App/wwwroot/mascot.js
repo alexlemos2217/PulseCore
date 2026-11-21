@@ -294,6 +294,13 @@
           }
           break;
         }
+
+        case "license_activate_result": {
+          if (m.payload && m.payload.success) {
+            celebrate("★ ¡PulseCore Pro activado! Todas las funciones desbloqueadas.");
+          }
+          break;
+        }
       }
     });
   }

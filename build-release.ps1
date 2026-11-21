@@ -2,7 +2,7 @@ $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $root
 
-Write-Host "=== PulseCore v1.8.0 Release Builder ===" -ForegroundColor Cyan
+Write-Host "=== PulseCore v2.0.0 Release Builder ===" -ForegroundColor Cyan
 
 # 1. Verificar dotnet CLI
 if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) {
@@ -41,10 +41,10 @@ if ($iscc) {
         Write-Error "ISCC.exe falló con código $LASTEXITCODE."
         exit $LASTEXITCODE
     }
-    Write-Host "Instalador generado en: $(Join-Path $distDir 'PulseCore-Setup-v1.8.0.exe')" -ForegroundColor Green
+    Write-Host "Instalador generado en: $(Join-Path $distDir 'PulseCore-Setup-v2.0.0.exe')" -ForegroundColor Green
 } else {
     Write-Host ""
     Write-Host "Inno Setup (ISCC.exe) no se detectó instalado automáticamente." -ForegroundColor Yellow
-    Write-Host "Para generar PulseCore-Setup-v1.8.0.exe, instalá Inno Setup 6 y ejecutá:" -ForegroundColor White
+    Write-Host "Para generar PulseCore-Setup-v2.0.0.exe, instalá Inno Setup 6 y ejecutá:" -ForegroundColor White
     Write-Host "  & `"C:\Program Files (x86)\Inno Setup 6\ISCC.exe`" `"$issPath`"" -ForegroundColor Cyan
 }

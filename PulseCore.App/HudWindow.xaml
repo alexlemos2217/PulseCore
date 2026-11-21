@@ -29,7 +29,9 @@
                    RenderOptions.BitmapScalingMode="HighQuality" />
 
             <!-- FPS + 1% Low -->
-            <TextBlock x:Name="TxtFps" Text="-- FPS" Foreground="#10B981" FontSize="12.5" FontWeight="ExtraBold"
+            <TextBlock Text="FPS" Foreground="#64748B" FontSize="10" FontWeight="Bold"
+                       VerticalAlignment="Center" Margin="0,0,4,0" FontFamily="Segoe UI" />
+            <TextBlock x:Name="TxtFps" Text="--" Foreground="#94A3B8" FontSize="12.5" FontWeight="ExtraBold"
                        VerticalAlignment="Center" FontFamily="Consolas" />
             <TextBlock x:Name="TxtOnePct" Text="" Foreground="#64748B" FontSize="10.5" FontWeight="SemiBold"
                        VerticalAlignment="Center" Margin="5,1,0,0" FontFamily="Consolas" Visibility="Collapsed" />
