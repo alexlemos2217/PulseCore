@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -8,6 +9,9 @@ using System.Windows.Media.Imaging;
 using Microsoft.Web.WebView2.Core;
 using PulseCore.App.Models;
 using PulseCore.App.Services;
+using Application = System.Windows.Application;
+using Forms = System.Windows.Forms;
+using MessageBox = System.Windows.MessageBox;
 
 namespace PulseCore.App;
 
@@ -33,17 +37,116 @@ public partial class MainWindow : Window
     private readonly FortniteService _fortnite = new();
     private readonly GameModeService _gameMode;
     private volatile TelemetrySnapshot? _lastSnapshot;
+    private Forms.NotifyIcon? _trayIcon;
+    private bool _forceExit;
+    private bool _trayHintShown;
 
     public MainWindow()
     {
         InitializeComponent();
         Icon = BitmapFrame.Create(new Uri("pack://application:,,,/Assets/pulsecore.ico", UriKind.Absolute));
+        InitTrayIcon();
         _gameMode = new GameModeService(_power, _memory);
         _gameMode.Event += (type, payload) => Dispatcher.InvokeAsync(() => Send(type, payload));
         StateChanged += (_, _) => OnWindowStateChanged();
         Loaded += async (_, _) => await InitWebViewAsync();
-        Closing += (_, _) => _cts.Cancel();
+        Closing += OnWindowClosing;
         Closed += OnClosedCleanup;
+    }
+
+    // ---------- Bandeja del Sistema (System Tray) ----------
+    private void InitTrayIcon()
+    {
+        System.Drawing.Icon trayIco;
+        try
+        {
+            var res = Application.GetResourceStream(new Uri("pack://application:,,,/Assets/pulsecore.ico", UriKind.Absolute));
+            trayIco = res is not null ? new System.Drawing.Icon(res.Stream) : System.Drawing.SystemIcons.Application;
+        }
+        catch (Exception)
+        {
+            trayIco = System.Drawing.SystemIcons.Application;
+        }
+
+        var menu = new Forms.ContextMenuStrip();
+        menu.Items.Add("Abrir PulseCore", null, (_, _) => Dispatcher.Invoke(RestoreFromTray));
+        menu.Items.Add("⚡ Boost Rápido", null, (_, _) => _ = RunTrayQuickBoostAsync());
+        menu.Items.Add(new Forms.ToolStripSeparator());
+        menu.Items.Add("Salir", null, (_, _) => Dispatcher.Invoke(ExitApplication));
+
+        _trayIcon = new Forms.NotifyIcon
+        {
+            Icon = trayIco,
+            Text = "PulseCore — Monitor & Optimizador",
+            ContextMenuStrip = menu,
+            Visible = true
+        };
+        _trayIcon.DoubleClick += (_, _) => Dispatcher.Invoke(RestoreFromTray);
+    }
+
+    private void RestoreFromTray()
+    {
+        Show();
+        if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal;
+        Activate();
+        Topmost = true;
+        Topmost = false;
+        Focus();
+    }
+
+    private void ExitApplication()
+    {
+        _forceExit = true;
+        Close();
+    }
+
+    private void OnWindowClosing(object? sender, CancelEventArgs e)
+    {
+        if (!_forceExit)
+        {
+            e.Cancel = true;
+            Hide();
+            if (!_trayHintShown)
+            {
+                _trayHintShown = true;
+                _trayIcon?.ShowBalloonTip(
+                    3500,
+                    "PulseCore sigue activo",
+                    "Se minimizó a la bandeja del sistema para seguir vigilando tus juegos.",
+                    Forms.ToolTipIcon.Info);
+            }
+            return;
+        }
+        _cts.Cancel();
+    }
+
+    private async Task RunTrayQuickBoostAsync()
+    {
+        if (!await _actionGate.WaitAsync(0))
+        {
+            _trayIcon?.ShowBalloonTip(3000, "PulseCore", "Hay otra operación en curso. Esperá un momento.", Forms.ToolTipIcon.Warning);
+            return;
+        }
+        try
+        {
+            var r = await Task.Run(QuickBoost);
+            var ramText = r.Ram.FreedMb >= 1024
+                ? $"+{r.Ram.FreedMb / 1024.0:F2} GB RAM"
+                : r.Ram.FreedMb > 0 ? $"+{r.Ram.FreedMb:F0} MB RAM" : "RAM optimizada";
+            var planText = r.PlanChanged ? $"{r.PlanName} activo" : r.PlanName;
+            var dnsText = r.DnsFlushed ? "DNS limpio" : "DNS sin cambios";
+
+            _trayIcon?.ShowBalloonTip(4500, "PulseCore — Boost Rápido", $"{ramText} · {planText} · {dnsText}", Forms.ToolTipIcon.Info);
+            await Dispatcher.InvokeAsync(() => Send("boost_result", r));
+        }
+        catch (Exception ex)
+        {
+            _trayIcon?.ShowBalloonTip(4000, "PulseCore — Error", ex.Message, Forms.ToolTipIcon.Error);
+        }
+        finally
+        {
+            _actionGate.Release();
+        }
     }
 
     // ---------- Loop de telemetría ----------
@@ -80,6 +183,7 @@ public partial class MainWindow : Window
                 {
                     var snapshot = _telemetry.GetSnapshot();
                     _lastSnapshot = snapshot;
+                    _gameMode.RecordTelemetrySample(snapshot.Cpu.UsagePercent, snapshot.Gpu.TemperatureC, snapshot.Ram.UsedGb);
                     var json = JsonSerializer.Serialize(new { type = "telemetry", data = snapshot }, JsonOptions);
                     await PostToUiAsync(json, ct);
                 }
@@ -108,6 +212,12 @@ public partial class MainWindow : Window
 
     private void OnClosedCleanup(object? sender, EventArgs e)
     {
+        if (_trayIcon is not null)
+        {
+            _trayIcon.Visible = false;
+            _trayIcon.Dispose();
+            _trayIcon = null;
+        }
         _cts.Cancel();
         try { _telemetryLoop?.Wait(TimeSpan.FromSeconds(3)); } catch (AggregateException) { }
         _gameMode.Dispose();
@@ -212,6 +322,17 @@ public partial class MainWindow : Window
                     () => Task.FromResult<object>(_fortnite.CleanFortniteFiles(demos, logs)));
                 break;
             }
+            case "get_game_sessions":
+                _ = RunActionAsync("get_game_sessions", "game_sessions", false,
+                    () => Task.FromResult<object>(new { sessions = _gameMode.GetSessions(), cleared = false }));
+                break;
+            case "clear_game_sessions":
+                _ = RunActionAsync("clear_game_sessions", "game_sessions", false, () =>
+                {
+                    _gameMode.ClearSessions();
+                    return Task.FromResult<object>(new { sessions = _gameMode.GetSessions(), cleared = true });
+                });
+                break;
             case "get_game_mode_state":
                 _ = RunActionAsync("get_game_mode_state", "game_mode_state", false,
                     () => Task.FromResult<object>(GameReply(true, null)));

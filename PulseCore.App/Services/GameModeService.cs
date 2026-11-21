@@ -15,19 +15,36 @@ public sealed class GameModeService : IDisposable
     private static readonly JsonSerializerOptions JsonOpts = new(JsonSerializerDefaults.Web) { WriteIndented = true };
     private static readonly Regex ExeRx = new(@"^[A-Za-z0-9_\-. ]{1,100}\.exe$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-    private sealed record Session(
-        string Name, string Process, int Pid, DateTimeOffset StartedAt,
-        string? PreviousPlanGuid, string? PreviousPlanName, string? NewPlanName, bool PlanChanged);
+    private sealed class Session(
+        string name, string process, int pid, DateTimeOffset startedAt,
+        string? previousPlanGuid, string? previousPlanName, string? newPlanName, bool planChanged)
+    {
+        public string Name { get; } = name;
+        public string Process { get; } = process;
+        public int Pid { get; } = pid;
+        public DateTimeOffset StartedAt { get; } = startedAt;
+        public string? PreviousPlanGuid { get; } = previousPlanGuid;
+        public string? PreviousPlanName { get; } = previousPlanName;
+        public string? NewPlanName { get; } = newPlanName;
+        public bool PlanChanged { get; } = planChanged;
+        public double? MaxGpuTemp { get; set; }
+        public double MaxCpuLoad { get; set; }
+        public double MaxRamGb { get; set; }
+    }
+
+    private const int MaxStoredSessions = 30;
 
     public event Action<string, object>? Event;
 
     private readonly PowerPlanService _power;
     private readonly MemoryOptimizerService _memory;
     private readonly string _path;
-    private readonly object _lock = new();   // protege config + sesión
+    private readonly string _sessionsPath;
+    private readonly object _lock = new();   // protege config + sesión + historial
     private readonly object _opLock = new(); // serializa operaciones (tick / fin de sesión)
 
     private GameModeConfig _config;
+    private List<GameSessionRecord> _sessions;
     private Session? _session;
     private CancellationTokenSource? _cts;
     private Task? _loop;
@@ -40,7 +57,35 @@ public sealed class GameModeService : IDisposable
         _path = string.IsNullOrWhiteSpace(configPath)
             ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "PulseCore", "games.json")
             : configPath;
+        _sessionsPath = Path.Combine(Path.GetDirectoryName(_path)!, "sessions.json");
         _config = Load();
+        _sessions = LoadSessions();
+    }
+
+    // ---------- Telemetría e Historial de Sesiones ----------
+    public void RecordTelemetrySample(double cpuLoad, double? gpuTemp, double ramUsedGb)
+    {
+        lock (_lock)
+        {
+            if (_session is null) return;
+            if (!double.IsNaN(cpuLoad) && cpuLoad > _session.MaxCpuLoad)
+                _session.MaxCpuLoad = Math.Round(cpuLoad, 1);
+            if (gpuTemp is { } t && !double.IsNaN(t) && t > 0 && (_session.MaxGpuTemp is null || t > _session.MaxGpuTemp.Value))
+                _session.MaxGpuTemp = Math.Round(t, 1);
+            if (!double.IsNaN(ramUsedGb) && ramUsedGb > _session.MaxRamGb)
+                _session.MaxRamGb = Math.Round(ramUsedGb, 2);
+        }
+    }
+
+    public IReadOnlyList<GameSessionRecord> GetSessions()
+    {
+        lock (_lock) return _sessions.ToList();
+    }
+
+    public bool ClearSessions()
+    {
+        lock (_lock) _sessions.Clear();
+        return SaveSessions();
     }
 
     // ---------- Estado ----------
@@ -275,13 +320,37 @@ public sealed class GameModeService : IDisposable
             }
 
             var ended = DateTimeOffset.Now;
+            var durationSeconds = Math.Max(0L, (long)(ended - s.StartedAt).TotalSeconds);
+            var record = new GameSessionRecord(
+                s.Name,
+                s.Process,
+                s.StartedAt,
+                ended,
+                durationSeconds,
+                s.MaxGpuTemp,
+                Math.Round(s.MaxCpuLoad, 1),
+                Math.Round(s.MaxRamGb, 2));
+
+            lock (_lock)
+            {
+                _sessions.Insert(0, record);
+                if (_sessions.Count > MaxStoredSessions)
+                    _sessions.RemoveRange(MaxStoredSessions, _sessions.Count - MaxStoredSessions);
+            }
+            SaveSessions();
+
             Raise("game_session_ended", new
             {
                 game = s.Name,
                 process = s.Process,
                 startedAt = s.StartedAt,
                 endedAt = ended,
-                durationSeconds = (long)(ended - s.StartedAt).TotalSeconds,
+                durationSeconds,
+                maxGpuTemp = record.MaxGpuTemp,
+                maxCpuLoad = record.MaxCpuLoad,
+                maxRamGb = record.MaxRamGb,
+                session = record,
+                sessions = GetSessions(),
                 planReverted = reverted,
                 restoredPlanName = restoredName,
                 planMessage = planMsg,
@@ -340,6 +409,35 @@ public sealed class GameModeService : IDisposable
             var tmp = _path + ".tmp";
             File.WriteAllText(tmp, json);
             File.Move(tmp, _path, true);
+            return true;
+        }
+        catch (Exception) { return false; }
+    }
+
+    private List<GameSessionRecord> LoadSessions()
+    {
+        try
+        {
+            if (File.Exists(_sessionsPath))
+            {
+                var list = JsonSerializer.Deserialize<List<GameSessionRecord>>(File.ReadAllText(_sessionsPath), JsonOpts);
+                if (list is not null) return list.Take(MaxStoredSessions).ToList();
+            }
+        }
+        catch (Exception) { }
+        return new List<GameSessionRecord>();
+    }
+
+    private bool SaveSessions()
+    {
+        try
+        {
+            string json;
+            lock (_lock) json = JsonSerializer.Serialize(_sessions, JsonOpts);
+            Directory.CreateDirectory(Path.GetDirectoryName(_sessionsPath)!);
+            var tmp = _sessionsPath + ".tmp";
+            File.WriteAllText(tmp, json);
+            File.Move(tmp, _sessionsPath, true);
             return true;
         }
         catch (Exception) { return false; }

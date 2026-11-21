@@ -129,16 +129,94 @@
     log("BOOST", `RAM liberada al iniciar partida: ${fmtMb(p.ramFreedMb || 0)} · ${p.ramProcessesTrimmed || 0} procesos`);
   }
 
+  function fmtDurShort(sec) {
+    sec = Math.max(0, Math.floor(sec || 0));
+    const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+    if (h > 0) return `${h}h ${m}m`;
+    if (m > 0) return `${m}m ${s}s`;
+    return `${s}s`;
+  }
+
+  function renderSessions(list) {
+    const arr = Array.isArray(list) ? list : [];
+    const countEl = $("gmSessionsCount");
+    const box = $("gmSessionsList");
+    if (countEl) countEl.textContent = `${arr.length} ${arr.length === 1 ? "sesión" : "sesiones"}`;
+    if (!box) return;
+    if (!arr.length) {
+      box.innerHTML = '<div class="empty-inline mono">Todavía no hay sesiones registradas. Activá Modo Juego y abrí un juego de tu lista.</div>';
+      return;
+    }
+    const rows = arr.map((s) => {
+      const dt = s.endedAt ? new Date(s.endedAt).toLocaleString("es-AR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }) : "—";
+      const gpu = s.maxGpuTemp != null ? `${Math.round(s.maxGpuTemp)} °C` : "N/D";
+      const gpuTone = s.maxGpuTemp == null ? "" : s.maxGpuTemp >= 80 ? "hot" : s.maxGpuTemp >= 70 ? "warm" : "cool";
+      return `<div class="sess-row">` +
+        `<div class="sess-game"><span class="sess-name">${esc(s.gameName)}</span><span class="sess-proc mono">${esc(s.processName)}</span></div>` +
+        `<span class="sess-date mono">${esc(dt)}</span>` +
+        `<span class="sess-dur mono">${fmtDurShort(s.durationSeconds)}</span>` +
+        `<span class="sess-gpu mono ${gpuTone}">${gpu}</span>` +
+        `<span class="sess-cpu mono">${Math.round(s.maxCpuLoad || 0)}%</span>` +
+        `<span class="sess-ram mono">${Number(s.maxRamGb || 0).toFixed(1)} GB</span>` +
+      `</div>`;
+    }).join("");
+
+    box.innerHTML =
+      `<div class="sess-head mono">` +
+        `<span>Juego</span><span>Fecha</span><span>Duración</span><span>GPU Máx</span><span>CPU Pico</span><span>RAM Pico</span>` +
+      `</div>` + rows;
+  }
+
+  function openPostGameModal(p) {
+    const modal = $("postGameModal");
+    if (!modal) return;
+    const dur = fmtDurShort(p.durationSeconds);
+    const gpu = p.maxGpuTemp != null ? `${Math.round(p.maxGpuTemp)} °C` : "N/D";
+    $("pgTitle").textContent = p.game || "Partida finalizada";
+    $("pgSub").textContent = `${p.process || ""} · ${p.reason || "Sesión cerrada"}`;
+    $("pgDur").textContent = dur;
+    $("pgGpu").textContent = gpu;
+    $("pgCpu").textContent = `${Math.round(p.maxCpuLoad || 0)}%`;
+    $("pgRam").textContent = `${Number(p.maxRamGb || 0).toFixed(1)} GB`;
+    $("pgPlan").textContent = p.planReverted
+      ? `Plan restaurado: ${p.restoredPlanName}`
+      : (p.planMessage || "Plan de energía sin cambios");
+    modal.hidden = false;
+  }
+
+  function closePostGameModal() {
+    const modal = $("postGameModal");
+    if (modal) modal.hidden = true;
+  }
+
+  $("btnClosePostGame")?.addEventListener("click", closePostGameModal);
+  $("btnOkPostGame")?.addEventListener("click", closePostGameModal);
+  $("postGameModal")?.addEventListener("click", (e) => {
+    if (e.target === $("postGameModal")) closePostGameModal();
+  });
+  $("btnClearSessions")?.addEventListener("click", () => send("clear_game_sessions"));
+
+  function onGameSessions(r) {
+    renderSessions(r.sessions);
+    if (r.cleared) {
+      log("GAME", "Historial de sesiones limpiado.");
+      toast({ title: "Historial limpiado", parts: ["Se vació sessions.json"], tone: "info" });
+    }
+  }
+
   function onSessionEnded(p) {
     renderGameMode(p.state);
+    if (p.sessions) renderSessions(p.sessions);
     const dur = fmtDur(p.durationSeconds);
+    const gpuPart = p.maxGpuTemp != null ? `GPU máx ${Math.round(p.maxGpuTemp)}°C` : null;
     toast({
       title: `Sesión finalizada · ${p.game}`,
-      parts: [`Duración ${dur}`, p.planReverted ? `Plan restaurado: ${p.restoredPlanName}` : "Plan sin cambios"],
+      parts: [`Duración ${dur}`, gpuPart, p.planReverted ? `Plan restaurado: ${p.restoredPlanName}` : null].filter(Boolean),
       tone: "info", ms: 8000,
     });
-    log("GAME", `Sesión finalizada: ${p.game} · duración ${dur} · motivo: ${p.reason}`);
+    log("GAME", `Sesión finalizada: ${p.game} · duración ${dur} · GPU máx: ${p.maxGpuTemp != null ? Math.round(p.maxGpuTemp) + "°C" : "N/D"} · CPU pico: ${Math.round(p.maxCpuLoad || 0)}% · RAM pico: ${Number(p.maxRamGb || 0).toFixed(1)} GB`);
     log("POWER", p.planMessage);
+    openPostGameModal(p);
   }
 
   // ==================== PING & JITTER ====================
@@ -250,7 +328,7 @@
   }
 
   // ==================== ERRORES ====================
-  const OWN = ["get_game_mode_state", "toggle_game_mode", "add_game_profile", "remove_game_profile", "run_ping_test", "export_logs"];
+  const OWN = ["get_game_mode_state", "toggle_game_mode", "add_game_profile", "remove_game_profile", "get_game_sessions", "clear_game_sessions", "run_ping_test", "export_logs"];
   function onActionError(e) {
     if (!OWN.includes(e.action)) return;
     if (e.action === "run_ping_test") resetPingUi();
@@ -265,6 +343,7 @@
     game_mode_state: onGameModeState,
     game_mode_event: onGameEvent,
     game_session_ended: onSessionEnded,
+    game_sessions: onGameSessions,
     ping_result: onPingResult,
     export_result: onExportResult,
     action_error: onActionError,
@@ -283,7 +362,11 @@
   });
 
   document.querySelectorAll('[data-view="gamemode"], [data-jump="gamemode"]').forEach((b) =>
-    b.addEventListener("click", () => send("get_game_mode_state")));
+    b.addEventListener("click", () => {
+      send("get_game_mode_state");
+      send("get_game_sessions");
+    }));
 
   send("get_game_mode_state");
+  send("get_game_sessions");
 })();

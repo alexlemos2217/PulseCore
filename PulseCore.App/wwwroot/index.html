@@ -19,6 +19,44 @@
   <div class="boost-frame" id="boostFrame" aria-hidden="true"></div>
   <div class="toast-host" id="toastHost" aria-live="polite"></div>
 
+  <!-- MODAL RESUMEN POST-PARTIDA -->
+  <div class="pg-overlay" id="postGameModal" hidden role="dialog" aria-modal="true" aria-labelledby="pgTitle">
+    <article class="card pg-modal">
+      <div class="pg-head">
+        <div>
+          <span class="card-tag emerald">RESUMEN POST-PARTIDA</span>
+          <h2 class="pg-title" id="pgTitle">—</h2>
+          <p class="pg-sub mono" id="pgSub">—</p>
+        </div>
+        <button class="pg-close" id="btnClosePostGame" title="Cerrar" aria-label="Cerrar resumen">✕</button>
+      </div>
+
+      <div class="pg-metrics">
+        <div class="pg-stat">
+          <span class="pg-stat-label">DURACIÓN</span>
+          <span class="pg-stat-val mono cyan" id="pgDur">—</span>
+        </div>
+        <div class="pg-stat">
+          <span class="pg-stat-label">TEMP MÁX GPU</span>
+          <span class="pg-stat-val mono emerald" id="pgGpu">—</span>
+        </div>
+        <div class="pg-stat">
+          <span class="pg-stat-label">PICO CPU</span>
+          <span class="pg-stat-val mono violet" id="pgCpu">—</span>
+        </div>
+        <div class="pg-stat">
+          <span class="pg-stat-label">PICO RAM</span>
+          <span class="pg-stat-val mono amber" id="pgRam">—</span>
+        </div>
+      </div>
+
+      <div class="pg-foot">
+        <span class="pg-plan mono" id="pgPlan">—</span>
+        <button class="action-btn primary" id="btnOkPostGame">Cerrar resumen</button>
+      </div>
+    </article>
+  </div>
+
   <!-- ========== BARRA SUPERIOR CUSTOM ========== -->
   <header class="titlebar" id="titlebar">
     <div class="tb-left" id="dragLeft">
@@ -237,7 +275,7 @@
         <div class="sys-chip">
           <div class="sys-chip-row">
             <span class="sys-machine" id="sbMachine">PC Local</span>
-            <span class="sys-ver mono">v1.0.0</span>
+            <span class="sys-ver mono">v1.1.0</span>
           </div>
           <div class="sys-meta mono" id="sbMeta">Inicializando…</div>
           <div class="sys-source mono" id="sbSource" title="Motor de sensores activo">Driver: —</div>
@@ -627,6 +665,23 @@
             </div>
           </article>
         </div>
+
+        <!-- HISTORIAL DE SESIONES -->
+        <article class="card glow-card gm-history-card">
+          <div class="panel-head">
+            <div>
+              <h2 class="panel-title">Historial de Sesiones</h2>
+              <p class="panel-sub">Últimas 30 partidas registradas en %APPDATA%\PulseCore\sessions.json</p>
+            </div>
+            <div class="head-actions">
+              <span class="mini-tag mono" id="gmSessionsCount">0 sesiones</span>
+              <button class="action-btn small" id="btnClearSessions">Limpiar historial</button>
+            </div>
+          </div>
+          <div class="sessions-wrap" id="gmSessionsList">
+            <div class="empty-inline mono">Todavía no hay sesiones registradas. Activá Modo Juego y abrí un juego de tu lista.</div>
+          </div>
+        </article>
       </section>
 
       <!-- ==================== VISTA: FORTNITE PRO ==================== -->

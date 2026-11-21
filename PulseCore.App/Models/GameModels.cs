@@ -19,6 +19,16 @@ public sealed record ActiveGameInfo(
     string? PlanName,
     bool PlanChanged);
 
+public sealed record GameSessionRecord(
+    string GameName,
+    string ProcessName,
+    DateTimeOffset StartedAt,
+    DateTimeOffset EndedAt,
+    long DurationSeconds,
+    double? MaxGpuTemp,
+    double MaxCpuLoad,
+    double MaxRamGb);
+
 public sealed record GameModeState(
     bool IsEnabled,
     IReadOnlyList<GameProfile> Games,

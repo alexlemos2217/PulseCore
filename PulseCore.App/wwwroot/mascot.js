@@ -190,7 +190,9 @@
           const p = m.payload || {};
           state.gameName = null;
           evaluateState();
-          say(`GG en ${p.game || "la partida"}. Plan de energía restaurado.`, 4000);
+          const mins = Math.max(1, Math.round((p.durationSeconds || 0) / 60));
+          const gpuInfo = p.maxGpuTemp != null ? ` GPU máx ${Math.round(p.maxGpuTemp)}°C.` : "";
+          celebrate(`¡GG en ${p.game || "la partida"} (${mins} min)!${gpuInfo} Plan restaurado.`);
           break;
         }
 
