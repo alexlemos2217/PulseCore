@@ -1,10 +1,12 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media.Imaging;
 using Microsoft.Web.WebView2.Core;
 using PulseCore.App.Models;
@@ -34,10 +36,20 @@ public partial class MainWindow : Window
     private readonly ProcessMonitorService _processes = new();
     private readonly SemaphoreSlim _actionGate = new(1, 1);
     private readonly NetworkPingService _ping = new();
+    private readonly NetworkOptimizerService _netOpt = new();
     private readonly FortniteService _fortnite = new();
+    private readonly GameDiscoveryService _discovery = new();
+    private readonly WingetService _winget = new();
+    private readonly UpdateService _updater = new();
+    private readonly FpsMonitorService _fps = new();
+    private readonly SystemCheckupService _checkup;
+    private readonly WindowsSuiteService _winSuite;
     private readonly GameModeService _gameMode;
     private volatile TelemetrySnapshot? _lastSnapshot;
     private Forms.NotifyIcon? _trayIcon;
+    private HudWindow? _hud;
+    private long? _lastHudPingMs;
+    private long _lastHudPingTick;
     private bool _forceExit;
     private bool _trayHintShown;
 
@@ -45,8 +57,16 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         Icon = BitmapFrame.Create(new Uri("pack://application:,,,/Assets/pulsecore.ico", UriKind.Absolute));
+        SourceInitialized += (_, _) =>
+        {
+            var hwnd = new WindowInteropHelper(this).Handle;
+            HwndSource.FromHwnd(hwnd)?.AddHook(WndProc);
+        };
         InitTrayIcon();
-        _gameMode = new GameModeService(_power, _memory);
+        _checkup = new SystemCheckupService(_power);
+        _winSuite = new WindowsSuiteService(_checkup);
+        _checkup.ExternalReverter = _winSuite.RevertDebloatRecord;
+        _gameMode = new GameModeService(_power, _memory, discovery: _discovery);
         _gameMode.Event += (type, payload) => Dispatcher.InvokeAsync(() => Send(type, payload));
         StateChanged += (_, _) => OnWindowStateChanged();
         Loaded += async (_, _) => await InitWebViewAsync();
@@ -70,6 +90,8 @@ public partial class MainWindow : Window
 
         var menu = new Forms.ContextMenuStrip();
         menu.Items.Add("Abrir PulseCore", null, (_, _) => Dispatcher.Invoke(RestoreFromTray));
+        menu.Items.Add("Mostrar/Ocultar Mini-HUD", null, (_, _) => Dispatcher.Invoke(ToggleHud));
+        menu.Items.Add("Desbloquear/Bloquear Mini-HUD", null, (_, _) => Dispatcher.Invoke(ToggleHudLock));
         menu.Items.Add("⚡ Boost Rápido", null, (_, _) => _ = RunTrayQuickBoostAsync());
         menu.Items.Add(new Forms.ToolStripSeparator());
         menu.Items.Add("Salir", null, (_, _) => Dispatcher.Invoke(ExitApplication));
@@ -184,6 +206,21 @@ public partial class MainWindow : Window
                     var snapshot = _telemetry.GetSnapshot();
                     _lastSnapshot = snapshot;
                     _gameMode.RecordTelemetrySample(snapshot.Cpu.UsagePercent, snapshot.Gpu.TemperatureC, snapshot.Ram.UsedGb);
+
+                    var hudVisible = false;
+                    var fps = _fps.CurrentFps;
+                    await Dispatcher.InvokeAsync(() =>
+                    {
+                        hudVisible = _hud is { IsVisible: true };
+                        if (hudVisible) _hud!.UpdateMetrics(snapshot, _lastHudPingMs, fps);
+                    }, System.Windows.Threading.DispatcherPriority.Normal, ct);
+
+                    if (hudVisible && Environment.TickCount64 - _lastHudPingTick >= 5000)
+                    {
+                        _lastHudPingTick = Environment.TickCount64;
+                        _ = Task.Run(ProbeHudPingAsync, ct);
+                    }
+
                     var json = JsonSerializer.Serialize(new { type = "telemetry", data = snapshot }, JsonOptions);
                     await PostToUiAsync(json, ct);
                 }
@@ -206,12 +243,19 @@ public partial class MainWindow : Window
         {
             StartTelemetryLoop();
             _gameMode.Start();
+            _ = CheckForUpdatesAsync();
         }
         else MessageBox.Show($"Falló la carga de la UI: {e.WebErrorStatus}", "PulseCore");
     }
 
     private void OnClosedCleanup(object? sender, EventArgs e)
     {
+        _fps.Dispose();
+        if (_hud is not null)
+        {
+            try { _hud.Close(); } catch (Exception) { }
+            _hud = null;
+        }
         if (_trayIcon is not null)
         {
             _trayIcon.Visible = false;
@@ -322,6 +366,147 @@ public partial class MainWindow : Window
                     () => Task.FromResult<object>(_fortnite.CleanFortniteFiles(demos, logs)));
                 break;
             }
+            case "get_dns_state":
+                _ = RunActionAsync("get_dns_state", "dns_state", false,
+                    () => Task.FromResult<object>(_netOpt.GetDnsState()));
+                break;
+            case "benchmark_dns":
+                _ = RunActionAsync("benchmark_dns", "dns_state", false,
+                    async () => await _netOpt.BenchmarkDnsAsync(_cts.Token));
+                break;
+            case "apply_dns":
+            {
+                var prov = PayloadString(payload, "providerId");
+                _ = RunActionAsync("apply_dns", "dns_apply_result", true,
+                    () => Task.FromResult<object>(_netOpt.ApplyDns(prov)));
+                break;
+            }
+            case "run_packet_loss":
+            {
+                var host = PayloadString(payload, "host");
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        var res = await _netOpt.RunPacketLossTestAsync(
+                            host,
+                            prog => Dispatcher.InvokeAsync(() => Send("packet_loss_progress", prog)),
+                            _cts.Token);
+                        await Dispatcher.InvokeAsync(() => Send("packet_loss_result", res));
+                    }
+                    catch (Exception ex)
+                    {
+                        await Dispatcher.InvokeAsync(() => Send("action_error", new { action = "run_packet_loss", message = ex.Message }));
+                    }
+                });
+                break;
+            }
+            case "get_debloat_items":
+                _ = RunActionAsync("get_debloat_items", "debloat_items", false,
+                    () => Task.FromResult<object>(new { items = _winSuite.GetDebloatItems() }));
+                break;
+            case "toggle_debloat_item":
+            {
+                var id = PayloadString(payload, "id");
+                var enable = PayloadBool(payload, "enable");
+                _ = RunActionAsync("toggle_debloat_item", "debloat_result", true,
+                    () => Task.FromResult<object>(_winSuite.ToggleDebloatItem(id, enable)));
+                break;
+            }
+            case "get_startup_apps":
+                _ = RunActionAsync("get_startup_apps", "startup_apps", false,
+                    () => Task.FromResult<object>(new { apps = _winSuite.GetStartupApps() }));
+                break;
+            case "toggle_startup_app":
+            {
+                var name = PayloadString(payload, "name");
+                var location = PayloadString(payload, "location");
+                var enable = PayloadBool(payload, "enable");
+                _ = RunActionAsync("toggle_startup_app", "startup_result", true,
+                    () => Task.FromResult<object>(_winSuite.ToggleStartupApp(name, location, enable)));
+                break;
+            }
+            case "run_windows_repair":
+            {
+                var tool = PayloadString(payload, "tool");
+                _ = Task.Run(() => _winSuite.RunRepairToolAsync(
+                    tool,
+                    ev => Dispatcher.InvokeAsync(() => Send("repair_output", ev)),
+                    done => Dispatcher.InvokeAsync(() => Send("repair_completed", done)),
+                    _cts.Token));
+                break;
+            }
+            case "get_winget_catalog":
+                _ = RunActionAsync("get_winget_catalog", "winget_catalog", false,
+                    () => Task.FromResult<object>(_winget.GetCatalog()));
+                break;
+            case "install_winget_apps":
+            {
+                var ids = PayloadStrings(payload, "packageIds").ToList();
+                _ = Task.Run(() => _winget.InstallPackagesAsync(
+                    ids,
+                    ev => Dispatcher.InvokeAsync(() => Send("winget_output", ev)),
+                    done => Dispatcher.InvokeAsync(() => Send("winget_completed", done)),
+                    _cts.Token));
+                break;
+            }
+            case "upgrade_all_winget_apps":
+                _ = Task.Run(() => _winget.UpgradeAllAsync(
+                    ev => Dispatcher.InvokeAsync(() => Send("winget_output", ev)),
+                    done => Dispatcher.InvokeAsync(() => Send("winget_completed", done)),
+                    _cts.Token));
+                break;
+            case "run_system_checkup":
+                _ = RunActionAsync("run_system_checkup", "checkup_report", false,
+                    () => Task.FromResult<object>(new { report = _checkup.RunCheckup(), history = _checkup.GetHistory() }));
+                break;
+            case "fix_checkup_item":
+            {
+                var id = PayloadString(payload, "id");
+                _ = RunActionAsync("fix_checkup_item", "checkup_action_result", true,
+                    () => Task.FromResult<object>(_checkup.FixItem(id)));
+                break;
+            }
+            case "create_restore_point":
+                _ = RunActionAsync("create_restore_point", "restore_point_result", true,
+                    () => Task.FromResult<object>(_checkup.CreateRestorePoint()));
+                break;
+            case "get_restore_history":
+                _ = RunActionAsync("get_restore_history", "restore_history", false,
+                    () => Task.FromResult<object>(new { history = _checkup.GetHistory() }));
+                break;
+            case "revert_change":
+            {
+                var cid = PayloadString(payload, "changeId");
+                _ = RunActionAsync("revert_change", "checkup_action_result", true,
+                    () => Task.FromResult<object>(_checkup.RevertChange(cid)));
+                break;
+            }
+            case "revert_all_changes":
+                _ = RunActionAsync("revert_all_changes", "checkup_action_result", true,
+                    () => Task.FromResult<object>(_checkup.RevertAllChanges()));
+                break;
+            case "scan_installed_games":
+                _ = RunActionAsync("scan_installed_games", "installed_games", false, () =>
+                {
+                    var games = _discovery.ScanInstalledGames();
+                    return Task.FromResult<object>(new
+                    {
+                        games,
+                        steamCount = games.Count(g => g.Platform == "Steam"),
+                        epicCount = games.Count(g => g.Platform == "Epic")
+                    });
+                });
+                break;
+            case "launch_game_boosted":
+            {
+                var name = PayloadString(payload, "name") ?? "Juego";
+                var platform = PayloadString(payload, "platform") ?? "";
+                var uri = PayloadString(payload, "launchUri") ?? "";
+                _ = RunActionAsync("launch_game_boosted", "launch_game_result", true,
+                    () => Task.FromResult<object>(LaunchGameBoosted(name, platform, uri)));
+                break;
+            }
             case "get_game_sessions":
                 _ = RunActionAsync("get_game_sessions", "game_sessions", false,
                     () => Task.FromResult<object>(new { sessions = _gameMode.GetSessions(), cleared = false }));
@@ -413,10 +598,50 @@ public partial class MainWindow : Window
             case "backend.ping":
                 Send("backend.pong", GetSystemInfo());
                 break;
+            case "open_external_url":
+            {
+                var url = PayloadString(payload, "url") ?? "";
+                if (url.StartsWith("https://github.com/", StringComparison.OrdinalIgnoreCase))
+                {
+                    try { Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); }
+                    catch (Exception) { }
+                }
+                break;
+            }
+            case "toggle_hud":
+                ToggleHud();
+                break;
+            case "toggle_hud_lock":
+                ToggleHudLock();
+                break;
             case "app.ready":
                 SendWindowState();
+                SendHudState();
                 Send("system.info", GetSystemInfo());
                 break;
+        }
+    }
+
+    private LaunchBoostedResult LaunchGameBoosted(string name, string platform, string launchUri)
+    {
+        if (string.IsNullOrWhiteSpace(launchUri) ||
+            (!launchUri.StartsWith("steam://rungameid/", StringComparison.OrdinalIgnoreCase) &&
+             !launchUri.StartsWith("com.epicgames.launcher://apps/", StringComparison.OrdinalIgnoreCase)))
+        {
+            return new LaunchBoostedResult(false, name, platform, launchUri, "URI de lanzamiento no permitida.", null);
+        }
+
+        var boost = QuickBoost();
+        try
+        {
+            Process.Start(new ProcessStartInfo(launchUri) { UseShellExecute = true });
+            return new LaunchBoostedResult(true, name, platform, launchUri,
+                $"Boost aplicado y lanzando {name} ({platform}).", boost);
+        }
+        catch (Exception ex)
+        {
+            return new LaunchBoostedResult(false, name, platform, launchUri,
+                $"Boost aplicado, pero no se pudo abrir {name}: {ex.Message}", boost);
         }
     }
 
@@ -605,18 +830,131 @@ public partial class MainWindow : Window
 
     private void OnWindowStateChanged()
     {
-        // Con WindowStyle=None + WindowChrome, al maximizar la ventana se desborda
-        // por el grosor del borde de redimensionado; lo compensamos con un margen.
-        RootGrid.Margin = WindowState == WindowState.Maximized
-            ? new Thickness(
-                SystemParameters.WindowResizeBorderThickness.Left + SystemParameters.FixedFrameVerticalBorderWidth,
-                SystemParameters.WindowResizeBorderThickness.Top + SystemParameters.FixedFrameHorizontalBorderHeight,
-                SystemParameters.WindowResizeBorderThickness.Right + SystemParameters.FixedFrameVerticalBorderWidth,
-                SystemParameters.WindowResizeBorderThickness.Bottom + SystemParameters.FixedFrameHorizontalBorderHeight)
-            : new Thickness(0);
+        // WM_GETMINMAXINFO ya ajusta el tamaño maximizado a rcWork (sin tapar la barra de tareas).
+        RootGrid.Margin = new Thickness(0);
         SendWindowState();
     }
 
     private void SendWindowState() =>
         Send("window.state", new { maximized = WindowState == WindowState.Maximized });
+
+    private async Task CheckForUpdatesAsync()
+    {
+        var info = await _updater.CheckForUpdateAsync(_cts.Token);
+        if (info is not null)
+            await Dispatcher.InvokeAsync(() => Send("update_available", info));
+    }
+
+    // ---------- Mini-HUD Flotante ----------
+    private void ToggleHud()
+    {
+        if (_hud is null)
+        {
+            _hud = new HudWindow();
+            _hud.StateChangedNotify += () => Dispatcher.InvokeAsync(() =>
+            {
+                if (_hud is not { IsVisible: true }) _fps.Stop();
+                SendHudState();
+            });
+        }
+
+        if (_hud.IsVisible)
+        {
+            _hud.Hide();
+            _fps.Stop();
+        }
+        else
+        {
+            _fps.Start();
+            _hud.Show();
+            if (_lastSnapshot is { } snap) _hud.UpdateMetrics(snap, _lastHudPingMs, _fps.CurrentFps);
+            _lastHudPingTick = 0; // dispara medición de ping inmediata
+        }
+        SendHudState();
+    }
+
+    private void ToggleHudLock()
+    {
+        if (_hud is null || !_hud.IsVisible) return;
+        _hud.SetClickThrough(!_hud.IsClickThrough);
+    }
+
+    private void SendHudState() =>
+        Send("hud_state", new { visible = _hud is { IsVisible: true }, clickThrough = _hud?.IsClickThrough ?? false });
+
+    private async Task ProbeHudPingAsync()
+    {
+        try
+        {
+            using var p = new Ping();
+            var reply = await p.SendPingAsync("1.1.1.1", 1200);
+            _lastHudPingMs = reply.Status == IPStatus.Success ? reply.RoundtripTime : null;
+        }
+        catch (Exception) { _lastHudPingMs = null; }
+    }
+
+    // ---------- WM_GETMINMAXINFO (Fix maximizado respetando barra de tareas en cualquier monitor) ----------
+    private const int WM_GETMINMAXINFO = 0x0024;
+    private const uint MONITOR_DEFAULTTONEAREST = 0x00000002;
+
+    private static IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        if (msg == WM_GETMINMAXINFO)
+        {
+            WmGetMinMaxInfo(hwnd, lParam);
+            handled = true;
+        }
+        return IntPtr.Zero;
+    }
+
+    private static void WmGetMinMaxInfo(IntPtr hwnd, IntPtr lParam)
+    {
+        var mmi = Marshal.PtrToStructure<MINMAXINFO>(lParam);
+        var monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+        if (monitor != IntPtr.Zero)
+        {
+            var info = new MONITORINFO { cbSize = Marshal.SizeOf<MONITORINFO>() };
+            if (GetMonitorInfo(monitor, ref info))
+            {
+                var work = info.rcWork;
+                var area = info.rcMonitor;
+                mmi.ptMaxPosition.x = Math.Abs(work.left - area.left);
+                mmi.ptMaxPosition.y = Math.Abs(work.top - area.top);
+                mmi.ptMaxSize.x = Math.Abs(work.right - work.left);
+                mmi.ptMaxSize.y = Math.Abs(work.bottom - work.top);
+            }
+        }
+        Marshal.StructureToPtr(mmi, lParam, true);
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct POINT { public int x; public int y; }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MINMAXINFO
+    {
+        public POINT ptReserved;
+        public POINT ptMaxSize;
+        public POINT ptMaxPosition;
+        public POINT ptMinTrackSize;
+        public POINT ptMaxTrackSize;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct RECT { public int left, top, right, bottom; }
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+    private struct MONITORINFO
+    {
+        public int cbSize;
+        public RECT rcMonitor;
+        public RECT rcWork;
+        public uint dwFlags;
+    }
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint dwFlags);
+
+    [DllImport("user32.dll", CharSet = CharSet.Auto)]
+    private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO lpmi);
 }

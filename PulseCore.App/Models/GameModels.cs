@@ -2,7 +2,10 @@ using System.Text.Json.Serialization;
 
 namespace PulseCore.App.Models;
 
-public sealed record GameProfile(string Name, string Process);
+public sealed record GameProfile(
+    string Name,
+    string Process,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? IconDataUrl = null);
 
 public sealed class GameModeConfig
 {
@@ -53,3 +56,18 @@ public sealed record PingTargetResult(
     string Status);
 
 public sealed record PingBurstResult(IReadOnlyList<PingTargetResult> Targets, long DurationMs);
+
+public sealed record InstalledGameInfo(
+    string Name,
+    string Platform,
+    string LaunchUri,
+    string InstallPath,
+    string? IconDataUrl = null);
+
+public sealed record LaunchBoostedResult(
+    bool Success,
+    string Name,
+    string Platform,
+    string LaunchUri,
+    string Message,
+    QuickBoostResult? Boost);

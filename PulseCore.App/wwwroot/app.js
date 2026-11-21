@@ -620,6 +620,22 @@
       $("iconRestore").style.display = p.maximized ? "" : "none";
       $("btnMax").title = p.maximized ? "Restaurar" : "Maximizar";
     },
+    "hud_state": (p) => {
+      const btn = $("btnToggleHud");
+      if (!btn) return;
+      btn.classList.toggle("active", !!p.visible);
+      btn.title = p.visible
+        ? (p.clickThrough ? "Mini-HUD activo (Click-Through bloqueado)" : "Ocultar Mini-HUD flotante")
+        : "Mostrar Mini-HUD flotante";
+    },
+    "update_available": (u) => {
+      const banner = $("updateBanner");
+      if (!banner || !u || !u.latestVersion) return;
+      $("ubText").textContent = `Nueva versión v${u.latestVersion} disponible (actual: v${u.currentVersion})`;
+      banner.dataset.url = u.downloadUrl || "";
+      banner.hidden = false;
+      addLog("SYS", `Actualización disponible: PulseCore v${u.latestVersion} (${u.downloadUrl})`);
+    },
   };
 
   if (host) {
@@ -684,6 +700,14 @@
   $("btnMin").addEventListener("click", () => send("window.minimize"));
   $("btnMax").addEventListener("click", () => send("window.toggleMaximize"));
   $("btnClose").addEventListener("click", () => send("window.close"));
+  $("btnToggleHud")?.addEventListener("click", () => send("toggle_hud"));
+  $("btnDownloadUpdate")?.addEventListener("click", () => {
+    const url = $("updateBanner")?.dataset.url;
+    if (url) send("open_external_url", { url });
+  });
+  $("btnDismissUpdate")?.addEventListener("click", () => {
+    if ($("updateBanner")) $("updateBanner").hidden = true;
+  });
 
   $("logFilters").addEventListener("click", (e) => {
     const btn = e.target.closest(".filter-btn");
@@ -704,6 +728,6 @@
 
   // Boot
   syncChartLegend();
-  addLog("SYS", "PulseCore UI v1.1.0 inicializada. Conectando puente WebView2…");
+  addLog("SYS", "PulseCore UI v1.7.0 inicializada. Conectando puente WebView2…");
   send("app.ready");
 })();

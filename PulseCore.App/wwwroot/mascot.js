@@ -231,6 +231,69 @@
           }
           break;
         }
+
+        case "launch_game_result": {
+          const p = m.payload || {};
+          if (p.success) {
+            celebrate(`¡Boost listo! Lanzando ${p.name || "tu juego"} a máxima potencia.`);
+          }
+          break;
+        }
+
+        case "checkup_action_result": {
+          const p = m.payload || {};
+          if (p.success && p.report && p.report.score >= 90) {
+            celebrate(`¡Check-up al ${p.report.score}/100! Tu PC está afinada al máximo.`);
+          }
+          break;
+        }
+
+        case "restore_point_result": {
+          if (m.payload && m.payload.success) {
+            celebrate("🛡️ Punto de restauración guardado. ¡Cero riesgos!");
+          }
+          break;
+        }
+
+        case "winget_completed": {
+          const p = m.payload || {};
+          if (p.success) {
+            celebrate(p.action === "upgrade"
+              ? "¡Todas tus apps quedaron al día con winget!"
+              : `¡Pack instalado (${p.succeeded} apps)! Tu PC está lista.`);
+          }
+          break;
+        }
+
+        case "debloat_result": {
+          if (m.payload && m.payload.success) {
+            celebrate("Windows más liviano y limpio. Todo reversible en Restauración.");
+          }
+          break;
+        }
+
+        case "repair_completed": {
+          const p = m.payload || {};
+          if (p.success) {
+            celebrate(`¡Reparación ${(p.tool || "Windows").toUpperCase()} terminada sin errores!`);
+          }
+          break;
+        }
+
+        case "dns_apply_result": {
+          if (m.payload && m.payload.success) {
+            celebrate("DNS optimizado y caché limpia. ¡Menor latencia lista!");
+          }
+          break;
+        }
+
+        case "packet_loss_result": {
+          const p = m.payload || {};
+          if (p.lossPercent === 0) {
+            celebrate(`0% Packet Loss en ${p.host}. ¡Conexión impecable!`);
+          }
+          break;
+        }
       }
     });
   }

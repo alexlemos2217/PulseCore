@@ -96,6 +96,10 @@
       </div>
     </div>
 
+    <button class="tb-hud-btn" id="btnToggleHud" title="Mostrar u ocultar el Mini-HUD flotante">
+      <span>📊</span><span>Mini-HUD</span>
+    </button>
+
     <div class="tb-controls">
       <button class="win-btn" id="btnMin" title="Minimizar" aria-label="Minimizar">
         <svg width="10" height="10" viewBox="0 0 10 10"><path d="M1 5h8" stroke="currentColor" stroke-width="1.2" /></svg>
@@ -152,7 +156,36 @@
           </svg>
           <span>Fortnite Pro</span>
         </button>
+        <button class="nav-item" data-view="lab">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 3h6M10 3v6.2L4.5 18.6A2 2 0 0 0 6.2 21.5h11.6a2 2 0 0 0 1.7-2.9L14 9.2V3" />
+            <path d="M7.5 15h9" />
+          </svg>
+          <span>Laboratorio</span>
+        </button>
+        <button class="nav-item" data-view="apps">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+            <line x1="12" y1="22.08" x2="12" y2="12" />
+          </svg>
+          <span>Apps</span>
+        </button>
         <div class="nav-section-label">SISTEMA</div>
+        <button class="nav-item" data-view="windows">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="8" height="8" rx="1.5" /><rect x="13" y="3" width="8" height="8" rx="1.5" />
+            <rect x="3" y="13" width="8" height="8" rx="1.5" /><rect x="13" y="13" width="8" height="8" rx="1.5" />
+          </svg>
+          <span>Windows</span>
+        </button>
+        <button class="nav-item" data-view="checkup">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2l7 4v6c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6l7-4z" />
+            <path d="M9 12l2 2 4-4" />
+          </svg>
+          <span>Check-up</span>
+        </button>
         <button class="nav-item" data-view="logs">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="4 17 10 11 4 5" /><line x1="12" y1="19" x2="20" y2="19" />
@@ -275,7 +308,7 @@
         <div class="sys-chip">
           <div class="sys-chip-row">
             <span class="sys-machine" id="sbMachine">PC Local</span>
-            <span class="sys-ver mono">v1.1.0</span>
+            <span class="sys-ver mono">v1.7.0</span>
           </div>
           <div class="sys-meta mono" id="sbMeta">Inicializando…</div>
           <div class="sys-source mono" id="sbSource" title="Motor de sensores activo">Driver: —</div>
@@ -285,6 +318,18 @@
 
     <!-- CONTENIDO PRINCIPAL -->
     <main class="viewport" id="viewport">
+      <!-- BANNER DE ACTUALIZACIÓN (Auto-Updater GitHub Releases) -->
+      <div class="update-banner" id="updateBanner" hidden>
+        <div class="ub-left">
+          <span class="card-tag emerald">ACTUALIZACIÓN</span>
+          <span class="ub-text" id="ubText">Nueva versión disponible</span>
+        </div>
+        <div class="ub-actions">
+          <button class="action-btn primary small" id="btnDownloadUpdate">Descargar actualización</button>
+          <button class="ub-close" id="btnDismissUpdate" title="Ocultar aviso" aria-label="Ocultar aviso">✕</button>
+        </div>
+      </div>
+
       <!-- ==================== VISTA 1: DASHBOARD ==================== -->
       <section class="view active" id="view-dashboard">
         <!-- FILA SUPERIOR: 4 INSTRUMENTOS DE PRECISIÓN 240° -->
@@ -666,6 +711,92 @@
           </article>
         </div>
 
+        <!-- RED AVANZADA: DNS SWITCHER + TEST DE PACKET LOSS (v1.6.0) -->
+        <div class="net-adv-grid">
+          <article class="card glow-card net-card">
+            <div class="panel-head">
+              <div>
+                <h2 class="panel-title">DNS Switcher &amp; Benchmark</h2>
+                <p class="panel-sub mono" id="dnsIfaceInfo">Interfaz: detectando…</p>
+              </div>
+              <button class="action-btn primary" id="btnBenchDns">
+                <span class="btn-spin"></span>
+                <span id="btnBenchDnsLabel">⚡ Medir mejor DNS</span>
+              </button>
+            </div>
+            <div class="dns-grid" id="dnsGrid">
+              <div class="empty-inline mono">Leyendo configuración DNS…</div>
+            </div>
+          </article>
+
+          <article class="card glow-card net-card">
+            <div class="panel-head">
+              <div>
+                <h2 class="panel-title">Test de Pérdida de Paquetes</h2>
+                <p class="panel-sub">Ráfaga de 20 pings consecutivos (200 ms) para medir estabilidad</p>
+              </div>
+              <div class="head-actions">
+                <div class="mode-switch" id="plHostSwitch">
+                  <button class="mode-btn active" data-host="1.1.1.1">1.1.1.1</button>
+                  <button class="mode-btn" data-host="8.8.8.8">8.8.8.8</button>
+                  <button class="mode-btn" data-host="9.9.9.9">9.9.9.9</button>
+                </div>
+                <button class="action-btn primary" id="btnRunPl">
+                  <span class="btn-spin"></span>
+                  <span id="btnRunPlLabel">Probar</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="pl-prog-wrap">
+              <div class="pl-prog-head mono">
+                <span id="plProgressLbl">Listo · 0 / 20 paquetes</span>
+                <span class="pl-stab" id="plStabBadge">Sin medir</span>
+              </div>
+              <div class="pl-track"><div class="pl-fill" id="plBar" style="width:0%"></div></div>
+            </div>
+
+            <div class="pl-stats">
+              <div class="pl-stat">
+                <span class="pl-stat-lbl">PACKET LOSS</span>
+                <span class="pl-stat-val mono" id="plLoss">—%</span>
+              </div>
+              <div class="pl-stat">
+                <span class="pl-stat-lbl">PROMEDIO</span>
+                <span class="pl-stat-val mono cyan" id="plAvg">— ms</span>
+              </div>
+              <div class="pl-stat">
+                <span class="pl-stat-lbl">MÍN / MÁX</span>
+                <span class="pl-stat-val mono" id="plMinMax">— / —</span>
+              </div>
+              <div class="pl-stat">
+                <span class="pl-stat-lbl">JITTER</span>
+                <span class="pl-stat-val mono violet" id="plJitter">— ms</span>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <!-- JUEGOS DETECTADOS (STEAM & EPIC) -->
+        <article class="card glow-card gm-library-card">
+          <div class="panel-head">
+            <div>
+              <h2 class="panel-title">Juegos Detectados (Steam &amp; Epic)</h2>
+              <p class="panel-sub">Escanea tus bibliotecas locales y lanzá cualquier juego con Boost automático</p>
+            </div>
+            <div class="head-actions">
+              <span class="mini-tag mono" id="gmLibCount">Sin escanear</span>
+              <button class="action-btn primary" id="btnScanLibrary">
+                <span class="btn-spin"></span>
+                <span id="btnScanLibLabel">Escanear Biblioteca</span>
+              </button>
+            </div>
+          </div>
+          <div class="lib-grid" id="gmLibraryGrid">
+            <div class="empty-inline mono">Pulsá “Escanear Biblioteca” para detectar juegos instalados en Steam y Epic Games.</div>
+          </div>
+        </article>
+
         <!-- HISTORIAL DE SESIONES -->
         <article class="card glow-card gm-history-card">
           <div class="panel-head">
@@ -799,6 +930,267 @@
         </article>
       </section>
 
+      <!-- ==================== VISTA: LABORATORIO DE PERIFÉRICOS ==================== -->
+      <section class="view" id="view-lab">
+        <div class="view-header">
+          <div>
+            <h1>Laboratorio de Periféricos</h1>
+            <p>Medí el polling rate real de tu mouse y evaluá la fluidez y ghosting de tu monitor.</p>
+          </div>
+          <span class="phase-pill live mono" id="labRefreshPill">Detectando Hz…</span>
+        </div>
+
+        <!-- TARJETA 1: POLLING RATE DEL MOUSE -->
+        <article class="card glow-card lab-card">
+          <div class="panel-head">
+            <div>
+              <h2 class="panel-title">Test de Polling Rate del Mouse</h2>
+              <p class="panel-sub">Mové el cursor en círculos continuos dentro del pad · usa eventos coalesced de alta frecuencia</p>
+            </div>
+            <div class="head-actions">
+              <span class="mini-tag mono" id="pollTier">Esperando…</span>
+              <button class="action-btn small" id="btnResetPoll">Reiniciar</button>
+            </div>
+          </div>
+
+          <div class="poll-layout">
+            <div class="mouse-pad" id="mousePad">
+              <div class="mouse-pad-grid" aria-hidden="true"></div>
+              <div class="mouse-pad-hint" id="mousePadHint">Mové el mouse en círculos aquí</div>
+              <div class="mouse-pad-hz mono" id="pollBigHz">0<span>Hz</span></div>
+            </div>
+
+            <div class="poll-side">
+              <div class="poll-stats">
+                <div class="poll-stat">
+                  <span class="poll-stat-lbl">ACTUAL</span>
+                  <span class="poll-stat-val mono cyan" id="pollCur">0 Hz</span>
+                </div>
+                <div class="poll-stat">
+                  <span class="poll-stat-lbl">PICO MÁXIMO</span>
+                  <span class="poll-stat-val mono emerald" id="pollPeak">0 Hz</span>
+                </div>
+                <div class="poll-stat">
+                  <span class="poll-stat-lbl">PROMEDIO</span>
+                  <span class="poll-stat-val mono violet" id="pollAvg">0 Hz</span>
+                </div>
+              </div>
+              <div class="poll-chart-wrap">
+                <canvas id="pollChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- TARJETA 2: TEST DE FLUIDEZ Y GHOSTING DEL MONITOR -->
+        <article class="card glow-card lab-card">
+          <div class="panel-head">
+            <div>
+              <h2 class="panel-title">Test de Fluidez y Ghosting del Monitor</h2>
+              <p class="panel-sub">Seguí la Pulse-Llama con la vista para evaluar motion blur, overdrive y estela de píxeles</p>
+            </div>
+            <div class="head-actions">
+              <span class="mini-tag mono" id="ghostHzBadge">— Hz detectados</span>
+              <div class="mode-switch" id="ghostSpeedSwitch">
+                <button class="mode-btn" data-speed="slow">Lenta</button>
+                <button class="mode-btn active" data-speed="medium">Media</button>
+                <button class="mode-btn" data-speed="fast">Rápida</button>
+              </div>
+              <button class="action-btn small" id="btnToggleGhost">Pausar</button>
+            </div>
+          </div>
+
+          <div class="ghost-wrap">
+            <canvas id="ghostCanvas"></canvas>
+          </div>
+        </article>
+      </section>
+
+      <!-- ==================== VISTA: APPS / RECIÉN FORMATEADO (WINGET) ==================== -->
+      <section class="view" id="view-apps">
+        <div class="view-header">
+          <div>
+            <h1>Apps &amp; Recién Formateado</h1>
+            <p>Instalá tu pack gamer en silencio o actualizá todo tu PC en un clic usando Windows Package Manager (winget).</p>
+          </div>
+          <div class="head-actions">
+            <span class="mini-tag mono" id="wgStatusPill">Verificando winget…</span>
+            <button class="action-btn" id="btnWgUpgradeAll">
+              <span class="btn-spin"></span>
+              <span id="btnWgUpgradeLabel">🔄 Actualizar todas las apps del PC</span>
+            </button>
+            <button class="action-btn primary" id="btnWgInstall" disabled>
+              <span class="btn-spin"></span>
+              <span id="btnWgInstallLabel">⬇ Instalar seleccionadas (0)</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="wg-toolbar">
+          <div class="wg-quick-btns">
+            <button class="action-btn small" id="btnWgPackGamer">⚡ Seleccionar pack Gamer</button>
+            <button class="action-btn small" id="btnWgClearSel">Limpiar selección</button>
+          </div>
+          <span class="wg-progress mono" id="wgProgressText">Listo · seleccioná las apps que quieras instalar</span>
+        </div>
+
+        <div class="wg-catalog" id="wgCatalog">
+          <div class="empty-inline mono">Cargando catálogo de winget…</div>
+        </div>
+
+        <article class="card wg-console-card">
+          <div class="wg-console-head">
+            <span class="mono">CONSOLA WINGET EN VIVO</span>
+            <button class="action-btn small" id="btnWgClearConsole">Limpiar consola</button>
+          </div>
+          <div class="wg-console-body mono" id="wgConsole">
+            <div class="wg-line muted">[listo] Esperando acción de winget…</div>
+          </div>
+        </article>
+      </section>
+
+      <!-- ==================== VISTA: WINDOWS SUITE (v1.5.0) ==================== -->
+      <section class="view" id="view-windows">
+        <div class="view-header">
+          <div>
+            <h1>Suite de Sistema Windows</h1>
+            <p>Debloat seguro 100% reversible, gestor de arranque y reparación oficial SFC / DISM.</p>
+          </div>
+          <div class="mode-switch" id="winSubTabs" role="tablist">
+            <button class="mode-btn active" data-sub="debloat">Debloat Seguro</button>
+            <button class="mode-btn" data-sub="startup">Inicio de Windows</button>
+            <button class="mode-btn" data-sub="repair">Reparación</button>
+          </div>
+        </div>
+
+        <!-- SUB-PESTAÑA 1: DEBLOAT SEGURO -->
+        <div class="win-sub active" id="winSubDebloat">
+          <div class="win-debloat-list" id="debloatList">
+            <div class="empty-inline mono">Leyendo claves del Registro…</div>
+          </div>
+        </div>
+
+        <!-- SUB-PESTAÑA 2: INICIO DE WINDOWS -->
+        <div class="win-sub" id="winSubStartup">
+          <article class="card glow-card win-startup-card">
+            <div class="panel-head">
+              <div>
+                <h2 class="panel-title">Programas al Inicio de Windows</h2>
+                <p class="panel-sub">Desactivar mueve la entrada a un respaldo seguro para poder reactivarla en cualquier momento</p>
+              </div>
+              <div class="head-actions">
+                <span class="mini-tag mono" id="startupCount">0 apps</span>
+                <button class="action-btn small" id="btnRefreshStartup">Actualizar</button>
+              </div>
+            </div>
+            <div class="startup-list" id="startupList">
+              <div class="empty-inline mono">Cargando aplicaciones de inicio…</div>
+            </div>
+          </article>
+        </div>
+
+        <!-- SUB-PESTAÑA 3: REPARACIÓN SFC / DISM -->
+        <div class="win-sub" id="winSubRepair">
+          <div class="repair-grid">
+            <article class="card glow-card repair-card">
+              <div class="card-head">
+                <span class="card-tag cyan">INTEGRIDAD</span>
+                <span class="mono muted-text">sfc /scannow</span>
+              </div>
+              <h3>Escaneo SFC</h3>
+              <p>Comprueba y repara archivos protegidos del sistema operativo Windows dañados o faltantes.</p>
+              <button class="action-btn primary" id="btnRunSfc">
+                <span class="btn-spin"></span>
+                <span id="btnRunSfcLabel">Ejecutar SFC</span>
+              </button>
+            </article>
+
+            <article class="card glow-card repair-card">
+              <div class="card-head">
+                <span class="card-tag violet">IMAGEN DEL SO</span>
+                <span class="mono muted-text">DISM /RestoreHealth</span>
+              </div>
+              <h3>Reparación DISM</h3>
+              <p>Repara la imagen base de Windows desde Windows Update para corregir errores profundos del sistema.</p>
+              <button class="action-btn primary violet" id="btnRunDism">
+                <span class="btn-spin"></span>
+                <span id="btnRunDismLabel">Ejecutar DISM</span>
+              </button>
+            </article>
+          </div>
+
+          <article class="card wg-console-card">
+            <div class="wg-console-head">
+              <span class="mono" id="repairStatusHead">CONSOLA DE REPARACIÓN EN VIVO</span>
+              <button class="action-btn small" id="btnClearRepairConsole">Limpiar consola</button>
+            </div>
+            <div class="wg-console-body mono" id="repairConsole">
+              <div class="wg-line muted">[listo] Elegí Escaneo SFC o Reparación DISM para comenzar.</div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <!-- ==================== VISTA: CHECK-UP Y RESTAURACIÓN ==================== -->
+      <section class="view" id="view-checkup">
+        <div class="view-header">
+          <div>
+            <h1>Check-up Inteligente &amp; Restauración</h1>
+            <p>Audita ajustes clave de Windows para gaming y revertí cualquier cambio en un clic.</p>
+          </div>
+          <div class="head-actions">
+            <button class="action-btn" id="btnRescanCheckup">
+              <span class="btn-spin"></span>
+              <span id="btnRescanLabel">Volver a escanear</span>
+            </button>
+            <button class="action-btn primary" id="btnCreateRestorePoint">
+              <span class="btn-spin"></span>
+              <span id="btnRpLabel">🛡️ Crear Punto de Restauración</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- TARJETA SUPERIOR: PUNTAJE DE OPTIMIZACIÓN -->
+        <article class="card glow-card ck-hero">
+          <div class="ck-score-wrap">
+            <div class="ck-score-num mono" id="ckScore">--</div>
+            <div class="ck-score-max mono">/ 100</div>
+          </div>
+          <div class="ck-hero-body">
+            <div class="ck-hero-top">
+              <span class="ck-hero-title">Puntaje de Optimización</span>
+              <span class="ready-badge" id="ckBadge">Auditando…</span>
+            </div>
+            <div class="ck-bar-track">
+              <div class="ck-bar-fill" id="ckBar" style="width:0%"></div>
+            </div>
+            <div class="ck-hero-sub mono" id="ckSummary">Escaneando configuración de Windows…</div>
+          </div>
+        </article>
+
+        <!-- LISTA DE DIAGNÓSTICO (5 ÍTEMS) -->
+        <div class="ck-list" id="checkupList">
+          <div class="empty-inline mono">Ejecutando auditoría del sistema…</div>
+        </div>
+
+        <!-- CENTRO DE RESTAURACIÓN -->
+        <article class="card glow-card ck-restore-card">
+          <div class="panel-head">
+            <div>
+              <h2 class="panel-title">Centro de Restauración</h2>
+              <p class="panel-sub">Cambios aplicados por PulseCore guardados en %APPDATA%\PulseCore\restore_history.json</p>
+            </div>
+            <div class="head-actions">
+              <span class="mini-tag mono" id="ckHistCount">0 cambios</span>
+              <button class="action-btn small" id="btnRevertAll" disabled>Revertir todo</button>
+            </div>
+          </div>
+          <div class="ck-hist-list" id="restoreList">
+            <div class="empty-inline mono">Todavía no hay cambios registrados para revertir.</div>
+          </div>
+        </article>
+      </section>
+
       <!-- ==================== VISTA 5: LOGS ==================== -->
       <section class="view" id="view-logs">
         <div class="view-header">
@@ -818,6 +1210,11 @@
         <div class="filter-group wide" id="logFilters">
           <button class="filter-btn active" data-filter="ALL">TODOS</button>
           <button class="filter-btn" data-filter="GAME">GAME</button>
+          <button class="filter-btn" data-filter="JUEGOS">JUEGOS</button>
+          <button class="filter-btn" data-filter="CHECKUP">CHECKUP</button>
+          <button class="filter-btn" data-filter="APPS">APPS</button>
+          <button class="filter-btn" data-filter="WINDOWS">WINDOWS</button>
+          <button class="filter-btn" data-filter="RED">RED</button>
           <button class="filter-btn" data-filter="FORTNITE">FORTNITE</button>
           <button class="filter-btn" data-filter="BOOST">BOOST</button>
           <button class="filter-btn" data-filter="CLEAN">CLEAN</button>
@@ -841,6 +1238,11 @@
   <script src="features.js"></script>
   <script src="gamemode.js"></script>
   <script src="fortnite.js"></script>
+  <script src="lab.js"></script>
+  <script src="checkup.js"></script>
+  <script src="apps.js"></script>
+  <script src="windows.js"></script>
+  <script src="network.js"></script>
   <script src="mascot.js"></script>
 </body>
 </html>

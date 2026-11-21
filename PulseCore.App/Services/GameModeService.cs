@@ -38,8 +38,12 @@ public sealed class GameModeService : IDisposable
 
     private readonly PowerPlanService _power;
     private readonly MemoryOptimizerService _memory;
+    private readonly GameDiscoveryService? _discovery;
     private readonly string _path;
     private readonly string _sessionsPath;
+    private readonly string _iconCacheDir;
+    private readonly Dictionary<string, string> _iconCache = new(StringComparer.OrdinalIgnoreCase);
+    private IReadOnlyList<InstalledGameInfo>? _discoveredCache;
     private readonly object _lock = new();   // protege config + sesión + historial
     private readonly object _opLock = new(); // serializa operaciones (tick / fin de sesión)
 
@@ -50,14 +54,21 @@ public sealed class GameModeService : IDisposable
     private Task? _loop;
     private volatile bool _disposed;
 
-    public GameModeService(PowerPlanService power, MemoryOptimizerService memory, string? configPath = null)
+    public GameModeService(
+        PowerPlanService power,
+        MemoryOptimizerService memory,
+        string? configPath = null,
+        GameDiscoveryService? discovery = null)
     {
         _power = power;
         _memory = memory;
+        _discovery = discovery;
         _path = string.IsNullOrWhiteSpace(configPath)
             ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "PulseCore", "games.json")
             : configPath;
-        _sessionsPath = Path.Combine(Path.GetDirectoryName(_path)!, "sessions.json");
+        var baseDir = Path.GetDirectoryName(_path)!;
+        _sessionsPath = Path.Combine(baseDir, "sessions.json");
+        _iconCacheDir = Path.Combine(baseDir, "icon_cache");
         _config = Load();
         _sessions = LoadSessions();
     }
@@ -91,13 +102,152 @@ public sealed class GameModeService : IDisposable
     // ---------- Estado ----------
     public GameModeState GetState()
     {
+        List<GameProfile> rawGames;
+        ActiveGameInfo? active;
+        bool enabled, running;
         lock (_lock)
         {
-            var active = _session is null ? null : new ActiveGameInfo(
+            enabled = _config.IsEnabled;
+            rawGames = _config.Games.ToList();
+            running = _loop is not null;
+            active = _session is null ? null : new ActiveGameInfo(
                 _session.Name, _session.Process, _session.Pid, _session.StartedAt,
                 _session.PreviousPlanName, _session.NewPlanName, _session.PlanChanged);
-            return new GameModeState(_config.IsEnabled, _config.Games.ToList(), active, _loop is not null, _path);
         }
+
+        var enriched = rawGames.Select(g => g with { IconDataUrl = ResolveGameIcon(g) }).ToList();
+        return new GameModeState(enabled, enriched, active, running, _path);
+    }
+
+    private string? ResolveGameIcon(GameProfile game)
+    {
+        var key = game.Process.ToLowerInvariant();
+        lock (_iconCache)
+        {
+            if (_iconCache.TryGetValue(key, out var cached)) return cached;
+        }
+
+        // 1. Caché en disco (%APPDATA%\PulseCore\icon_cache\)
+        var diskFile = Path.Combine(_iconCacheDir, Path.GetFileNameWithoutExtension(key) + ".png");
+        if (File.Exists(diskFile))
+        {
+            try
+            {
+                var url = "data:image/png;base64," + Convert.ToBase64String(File.ReadAllBytes(diskFile));
+                CacheIconMemory(key, url);
+                return url;
+            }
+            catch (Exception) { }
+        }
+
+        // 2. Cruce contra biblioteca detectada (Steam / Epic)
+        if (_discovery is not null)
+        {
+            _discoveredCache ??= _discovery.ScanInstalledGames();
+            var stem = Path.GetFileNameWithoutExtension(game.Process);
+            var match = _discoveredCache.FirstOrDefault(d =>
+                d.Name.Equals(game.Name, StringComparison.OrdinalIgnoreCase) ||
+                d.Name.Contains(game.Name, StringComparison.OrdinalIgnoreCase) ||
+                game.Name.Contains(d.Name, StringComparison.OrdinalIgnoreCase) ||
+                (!string.IsNullOrEmpty(d.InstallPath) && stem.Length >= 4 &&
+                 d.InstallPath.Contains(stem, StringComparison.OrdinalIgnoreCase)));
+            if (match?.IconDataUrl is not null)
+            {
+                CacheIconMemory(key, match.IconDataUrl);
+                return match.IconDataUrl;
+            }
+        }
+
+        // 3. Proceso en ejecución actualmente
+        var runningPath = TryGetRunningExePath(game.Process);
+        if (runningPath is not null)
+        {
+            var url = GameDiscoveryService.ExtractExeIconDataUrl(runningPath);
+            if (url is not null)
+            {
+                SaveIconCache(key, diskFile, url);
+                return url;
+            }
+        }
+
+        // 4. Rutas estándar conocidas (System32 / Riot / Epic / Steam)
+        var fallbackExe = FindKnownExePath(game.Process);
+        if (fallbackExe is not null)
+        {
+            var url = GameDiscoveryService.ExtractExeIconDataUrl(fallbackExe);
+            if (url is not null)
+            {
+                SaveIconCache(key, diskFile, url);
+                return url;
+            }
+        }
+
+        return null;
+    }
+
+    private void CacheIconMemory(string key, string dataUrl)
+    {
+        lock (_iconCache) _iconCache[key] = dataUrl;
+    }
+
+    private void SaveIconCache(string key, string diskFile, string dataUrl)
+    {
+        CacheIconMemory(key, dataUrl);
+        try
+        {
+            const string prefix = "data:image/png;base64,";
+            if (!dataUrl.StartsWith(prefix, StringComparison.Ordinal)) return;
+            Directory.CreateDirectory(_iconCacheDir);
+            File.WriteAllBytes(diskFile, Convert.FromBase64String(dataUrl[prefix.Length..]));
+        }
+        catch (Exception) { }
+    }
+
+    private static string? TryGetRunningExePath(string exe)
+    {
+        Process[] procs = [];
+        try
+        {
+            procs = Process.GetProcessesByName(Path.GetFileNameWithoutExtension(exe));
+            foreach (var p in procs)
+            {
+                try { return p.MainModule?.FileName; }
+                catch (Exception) { }
+            }
+        }
+        catch (Exception) { }
+        finally { foreach (var p in procs) p.Dispose(); }
+        return null;
+    }
+
+    private static string? FindKnownExePath(string exe)
+    {
+        var sys32 = Path.Combine(Environment.SystemDirectory, exe);
+        if (File.Exists(sys32)) return sys32;
+
+        var winDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), exe);
+        if (File.Exists(winDir)) return winDir;
+
+        var lower = exe.ToLowerInvariant();
+        string[] candidates = lower switch
+        {
+            "valorant-win64-shipping.exe" or "valorant.exe" =>
+            [
+                @"C:\Riot Games\VALORANT\live\VALORANT.exe",
+                @"C:\Riot Games\VALORANT\live\ShooterGame\Binaries\Win64\VALORANT-Win64-Shipping.exe"
+            ],
+            "fortniteclient-win64-shipping.exe" =>
+            [
+                @"C:\Program Files\Epic Games\Fortnite\FortniteGame\Binaries\Win64\FortniteClient-Win64-Shipping.exe"
+            ],
+            "cyberpunk2077.exe" =>
+            [
+                @"C:\Program Files (x86)\Steam\steamapps\common\Cyberpunk 2077\bin\x64\Cyberpunk2077.exe",
+                @"C:\Program Files\Epic Games\Cyberpunk2077\bin\x64\Cyberpunk2077.exe"
+            ],
+            _ => []
+        };
+        return candidates.FirstOrDefault(File.Exists);
     }
 
     public (bool Ok, string Message) SetEnabled(bool enabled)
@@ -404,7 +554,15 @@ public sealed class GameModeService : IDisposable
         try
         {
             string json;
-            lock (_lock) json = JsonSerializer.Serialize(_config, JsonOpts);
+            lock (_lock)
+            {
+                var clean = new GameModeConfig
+                {
+                    IsEnabled = _config.IsEnabled,
+                    Games = _config.Games.Select(g => new GameProfile(g.Name, g.Process)).ToList()
+                };
+                json = JsonSerializer.Serialize(clean, JsonOpts);
+            }
             Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
             var tmp = _path + ".tmp";
             File.WriteAllText(tmp, json);

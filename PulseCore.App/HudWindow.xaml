@@ -1,0 +1,82 @@
+<Window x:Class="PulseCore.App.HudWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="PulseCore Mini-HUD"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ResizeMode="NoResize"
+        SizeToContent="WidthAndHeight"
+        Left="18"
+        Top="18">
+    <Border x:Name="PillBorder"
+            Background="#CC0B0F19"
+            BorderBrush="#7738BDF8"
+            BorderThickness="1"
+            CornerRadius="13"
+            Padding="10,6"
+            Margin="6"
+            MouseLeftButtonDown="OnPillMouseDown">
+        <Border.Effect>
+            <DropShadowEffect Color="#000000" BlurRadius="14" ShadowDepth="2" Opacity="0.6" />
+        </Border.Effect>
+
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+            <Image Source="pack://application:,,,/Assets/pulsecore.ico"
+                   Width="16" Height="16" Margin="0,0,8,0"
+                   RenderOptions.BitmapScalingMode="HighQuality" />
+
+            <!-- FPS -->
+            <TextBlock x:Name="TxtFps" Text="-- FPS" Foreground="#10B981" FontSize="12.5" FontWeight="ExtraBold"
+                       VerticalAlignment="Center" FontFamily="Consolas" />
+
+            <Border Width="1" Height="12" Background="#28FFFFFF" Margin="9,0" />
+
+            <!-- CPU -->
+            <TextBlock Text="CPU" Foreground="#64748B" FontSize="10" FontWeight="Bold"
+                       VerticalAlignment="Center" Margin="0,0,4,0" FontFamily="Segoe UI" />
+            <TextBlock x:Name="TxtCpu" Text="--%" Foreground="#38BDF8" FontSize="12" FontWeight="Bold"
+                       VerticalAlignment="Center" FontFamily="Consolas" />
+
+            <Border Width="1" Height="12" Background="#28FFFFFF" Margin="9,0" />
+
+            <!-- GPU -->
+            <TextBlock Text="GPU" Foreground="#64748B" FontSize="10" FontWeight="Bold"
+                       VerticalAlignment="Center" Margin="0,0,4,0" FontFamily="Segoe UI" />
+            <TextBlock x:Name="TxtGpu" Text="--°C" Foreground="#10B981" FontSize="12" FontWeight="Bold"
+                       VerticalAlignment="Center" FontFamily="Consolas" />
+
+            <Border Width="1" Height="12" Background="#28FFFFFF" Margin="9,0" />
+
+            <!-- RAM -->
+            <TextBlock Text="RAM" Foreground="#64748B" FontSize="10" FontWeight="Bold"
+                       VerticalAlignment="Center" Margin="0,0,4,0" FontFamily="Segoe UI" />
+            <TextBlock x:Name="TxtRam" Text="-- GB" Foreground="#818CF8" FontSize="12" FontWeight="Bold"
+                       VerticalAlignment="Center" FontFamily="Consolas" />
+
+            <Border Width="1" Height="12" Background="#28FFFFFF" Margin="9,0" />
+
+            <!-- PING -->
+            <TextBlock Text="PING" Foreground="#64748B" FontSize="10" FontWeight="Bold"
+                       VerticalAlignment="Center" Margin="0,0,4,0" FontFamily="Segoe UI" />
+            <TextBlock x:Name="TxtPing" Text="--" Foreground="#10B981" FontSize="12" FontWeight="Bold"
+                       VerticalAlignment="Center" FontFamily="Consolas" />
+
+            <Border Width="1" Height="12" Background="#28FFFFFF" Margin="9,0,6,0" />
+
+            <!-- Candado (Click-Through) -->
+            <Button x:Name="BtnLock" Content="🔓" Click="OnLockClick"
+                    ToolTip="Activar modo Click-Through (bloquea clics durante partidas; desbloqueá desde la bandeja)"
+                    Background="Transparent" BorderThickness="0" Foreground="#94A3B8"
+                    FontSize="11" Padding="4,1" Cursor="Hand" VerticalAlignment="Center" />
+
+            <!-- Ocultar -->
+            <Button x:Name="BtnHide" Content="✕" Click="OnHideClick"
+                    ToolTip="Ocultar Mini-HUD"
+                    Background="Transparent" BorderThickness="0" Foreground="#94A3B8"
+                    FontSize="11" Padding="4,1" Margin="2,0,0,0" Cursor="Hand" VerticalAlignment="Center" />
+        </StackPanel>
+    </Border>
+</Window>

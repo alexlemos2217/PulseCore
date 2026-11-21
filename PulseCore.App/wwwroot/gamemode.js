@@ -67,8 +67,12 @@
     }
     list.innerHTML = gm.games.map((g) => {
       const live = gm.active && gm.active.process.toLowerCase() === g.process.toLowerCase();
+      const letter = esc((g.name[0] || "?").toUpperCase());
+      const avatarHtml = g.iconDataUrl
+        ? `<div class="gc-avatar has-img"><img src="${esc(g.iconDataUrl)}" alt="" onerror="this.parentElement.classList.remove('has-img');this.remove();" /><span class="gc-letter">${letter}</span></div>`
+        : `<div class="gc-avatar"><span class="gc-letter">${letter}</span></div>`;
       return `<div class="game-card ${live ? "live" : ""}">` +
-        `<div class="gc-avatar">${esc((g.name[0] || "?").toUpperCase())}</div>` +
+        avatarHtml +
         `<div class="gc-info"><div class="gc-name">${esc(g.name)}</div><div class="gc-proc mono">${esc(g.process)}</div></div>` +
         (live ? `<span class="gc-live mono">EN PARTIDA</span>` : "") +
         `<button class="gc-del" data-proc="${esc(g.process)}" title="Eliminar de la lista" aria-label="Eliminar ${esc(g.name)}">✕</button>` +
@@ -327,8 +331,97 @@
     log("INFO", `Diagnóstico exportado: ${r.path}`);
   }
 
+  // ==================== BIBLIOTECA DETECTADA (STEAM & EPIC) ====================
+  let scanningLib = false;
+
+  function renderLibrary(data) {
+    scanningLib = false;
+    const btn = $("btnScanLibrary");
+    if (btn) { btn.disabled = false; btn.classList.remove("loading"); }
+    if ($("btnScanLibLabel")) $("btnScanLibLabel").textContent = "Escanear Biblioteca";
+
+    const games = (data && data.games) || [];
+    const countEl = $("gmLibCount");
+    const grid = $("gmLibraryGrid");
+    if (countEl) {
+      countEl.textContent = games.length
+        ? `${games.length} (${data.steamCount || 0} Steam · ${data.epicCount || 0} Epic)`
+        : "0 encontrados";
+    }
+    if (!grid) return;
+    if (!games.length) {
+      grid.innerHTML = '<div class="empty-inline mono">No se detectaron juegos instalados en Steam ni Epic Games.</div>';
+      return;
+    }
+
+    const fallbackSvg = `<svg class="lib-fallback" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="6" width="20" height="12" rx="4"/><path d="M6 12h4M8 10v4M15 11h.01M18 13h.01"/></svg>`;
+    grid.innerHTML = games.map((g) => {
+      const platClass = g.platform === "Steam" ? "steam" : "epic";
+      const iconHtml = g.iconDataUrl
+        ? `<img class="lib-icon" src="${esc(g.iconDataUrl)}" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='grid'" /><span class="lib-icon-fb" style="display:none">${fallbackSvg}</span>`
+        : `<span class="lib-icon-fb">${fallbackSvg}</span>`;
+      return `<div class="lib-card" title="${esc(g.installPath || g.name)}">` +
+        `<div class="lib-head">` +
+          `<div class="lib-icon-wrap">${iconHtml}</div>` +
+          `<div class="lib-meta">` +
+            `<span class="plat-badge ${platClass} mono">${esc(g.platform.toUpperCase())}</span>` +
+            `<div class="lib-name">${esc(g.name)}</div>` +
+          `</div>` +
+        `</div>` +
+        `<button class="action-btn primary lib-play" data-uri="${esc(g.launchUri)}" data-name="${esc(g.name)}" data-plat="${esc(g.platform)}">` +
+          `⚡ Preparar y Jugar` +
+        `</button>` +
+      `</div>`;
+    }).join("");
+
+    log("JUEGOS", `Biblioteca escaneada: ${games.length} juegos (${data.steamCount || 0} Steam, ${data.epicCount || 0} Epic).`);
+  }
+
+  $("btnScanLibrary")?.addEventListener("click", () => {
+    if (scanningLib) return;
+    scanningLib = true;
+    $("btnScanLibrary").disabled = true;
+    $("btnScanLibrary").classList.add("loading");
+    $("btnScanLibLabel").textContent = "Escaneando…";
+    send("scan_installed_games");
+  });
+
+  $("gmLibraryGrid")?.addEventListener("click", (e) => {
+    const btn = e.target.closest(".lib-play");
+    if (!btn || btn.disabled) return;
+    btn.disabled = true;
+    const orig = btn.textContent;
+    btn.textContent = "Optimizando…";
+    btn.dataset.origLabel = orig;
+    log("JUEGOS", `Preparando sistema y lanzando ${btn.dataset.name} (${btn.dataset.plat})…`);
+    send("launch_game_boosted", {
+      name: btn.dataset.name,
+      platform: btn.dataset.plat,
+      launchUri: btn.dataset.uri,
+    });
+  });
+
+  function onLaunchGameResult(r) {
+    document.querySelectorAll(".lib-play:disabled").forEach((b) => {
+      b.disabled = false;
+      b.textContent = b.dataset.origLabel || "⚡ Preparar y Jugar";
+    });
+    const ramMb = r.boost && r.boost.ram ? Math.round(r.boost.ram.freedMb || 0) : 0;
+    const ramPart = ramMb > 0 ? `+${fmtMb(ramMb)} RAM` : "RAM optimizada";
+    const planPart = r.boost && r.boost.planName ? r.boost.planName : "Plan activo";
+    if (r.success) {
+      pulseFrame && pulseFrame("ok");
+      toast({ title: `Lanzando ${r.name}`, parts: [r.platform, ramPart, planPart], ms: 7500 });
+      log("JUEGOS", `${r.message} · ${ramPart} · ${planPart}`);
+    } else {
+      toast({ title: `No se pudo lanzar ${r.name}`, parts: [r.message], tone: "err" });
+      log("JUEGOS", `Error al lanzar ${r.name}: ${r.message}`);
+    }
+    send("get_optimizer_state");
+  }
+
   // ==================== ERRORES ====================
-  const OWN = ["get_game_mode_state", "toggle_game_mode", "add_game_profile", "remove_game_profile", "get_game_sessions", "clear_game_sessions", "run_ping_test", "export_logs"];
+  const OWN = ["get_game_mode_state", "toggle_game_mode", "add_game_profile", "remove_game_profile", "get_game_sessions", "clear_game_sessions", "scan_installed_games", "launch_game_boosted", "run_ping_test", "export_logs"];
   function onActionError(e) {
     if (!OWN.includes(e.action)) return;
     if (e.action === "run_ping_test") resetPingUi();
@@ -344,6 +437,8 @@
     game_mode_event: onGameEvent,
     game_session_ended: onSessionEnded,
     game_sessions: onGameSessions,
+    installed_games: renderLibrary,
+    launch_game_result: onLaunchGameResult,
     ping_result: onPingResult,
     export_result: onExportResult,
     action_error: onActionError,

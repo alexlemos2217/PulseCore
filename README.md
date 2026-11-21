@@ -1,104 +1,66 @@
-📄 **[Ver Banner Presentación de PulseCore (PDF)](./docs/pulsecore_banner.pdf)**
+# PulseCore v1.7.0
 
-# PulseCore v1.0.0
-
-**PulseCore** es una aplicación de escritorio nativa para Windows orientada a la telemetría de hardware en tiempo real y la optimización gamer segura y reversible. Combina un backend en **C# / .NET (WPF)** con una interfaz moderna acelerada por hardware en **WebView2** de estética *Dark Luxury*.
+**PulseCore** es una aplicación de escritorio nativa para Windows orientada a la telemetría de hardware en tiempo real, optimización gamer segura y mantenimiento integral del sistema. Combina un backend en **C# / .NET (WPF + WinForms Tray)** con una interfaz moderna *Dark Luxury* acelerada por hardware en **WebView2**.
 
 ---
 
 ## Stack Tecnológico
 
-- **Runtime y UI nativa:** .NET (`net11.0-windows`) + WPF (`WindowChrome` sin bordes clásicos)
+- **Runtime y UI nativa:** .NET (`net11.0-windows`) + WPF (`WindowChrome` con fix nativo `WM_GETMINMAXINFO` multi-monitor) + `System.Windows.Forms.NotifyIcon`
 - **Motor web embebido:** `Microsoft.Web.WebView2` (HTML5, CSS3 Glassmorphism, Canvas 2D puro a 60fps, sin frameworks JS pesados)
-- **Sensores de hardware:** `LibreHardwareMonitorLib` con fallback automático a APIs nativas Win32 (`GetSystemTimes`, `GlobalMemoryStatusEx`, `DriveInfo`)
-- **Interoperabilidad Windows:** P/Invoke a `psapi.dll` (`EmptyWorkingSet`), `kernel32.dll`, `powercfg` e `ipconfig` sin ventanas de consola
-- **Testing:** `xUnit` (`PulseCore.Tests`)
+- **Telemetría y FPS:** `LibreHardwareMonitorLib` (con fallback Win32 `GetSystemTimes` / `GlobalMemoryStatusEx`) + `Microsoft.Diagnostics.Tracing.TraceEvent` (ETW pasivo DXGI/D3D9 sin inyección)
+- **Interoperabilidad Windows:** P/Invoke a `psapi.dll` (`EmptyWorkingSet`), `user32.dll`, `kernel32.dll`, `powercfg`, `netsh`, `ipconfig`, `winget`, `sfc`, `DISM` y WMI
+- **Testing e Instalador:** `xUnit` (`PulseCore.Tests`) + **Inno Setup 6** (`Installer/PulseCore.iss` + `build-release.ps1`)
 
 ---
 
 ## Funcionalidades Principales
 
-- **Telemetría en tiempo real (1 Hz):**
-  - Instrumentos radiales de precisión de 240° con marcas de escala para **CPU** (uso %, temperatura °C y frecuencia MHz), **GPU** (carga %, temperatura °C y barra de VRAM), **RAM física real** y **Storage (`C:`)**.
-  - Gráfico interactivo en Canvas 2D con historial de 60 segundos, crosshair con tooltip flotante y selector entre `Uso (%)`, `Temp (°C)` y `RAM (%)`.
-  - Panel **Gaming Readiness** con índice en vivo (`0–100`), barra LED de 20 segmentos y botón **Boost Rápido** (Alto Rendimiento + liberación de RAM + vaciado DNS).
-- **Optimizador de Sistema:**
-  - Cambio real y reversible del plan de energía de Windows (`Equilibrado`, `Alto rendimiento`, `Máximo rendimiento`).
-  - Liberador de RAM (`EmptyWorkingSet`) sin cerrar programas, con contador de sesión.
-  - Monitor del Top 5 de procesos por consumo de RAM.
-- **Limpieza Profunda (Dry Run primero):**
-  - Escaneo sin borrado y limpieza selectiva omitiendo archivos en uso: `%TEMP%` / `C:\Windows\Temp`, Shaders DirectX (`D3DSCache`), caché GPU (`NVIDIA` / `AMD`) y caché DNS (`ipconfig /flushdns`).
-- **Modo Juego Automático & Monitor de Ping:**
-  - *Process Watcher* ligero cada 3 segundos con lista persistida en `%APPDATA%\PulseCore\games.json`.
-  - Al detectar un juego: guarda el plan actual, activa Alto Rendimiento, sube la prioridad del proceso a `High` (tolerante a anti-cheat) y libera RAM. Al cerrarse el juego, restaura automáticamente el plan de energía original.
-  - Monitor de **Ping y Jitter** (4 muestras contra Cloudflare `1.1.1.1`, Google `8.8.8.8` y AWS Sudamérica) con fallback automático a TCP 443 si ICMP está bloqueado.
-- **Módulo Fortnite Pro (100% seguro):**
-  - Solo opera sobre `%LOCALAPPDATA%\FortniteGame\Saved\Config\WindowsClient\GameUserSettings.ini` y carpetas `Saved\Demos`, `Crashes` y `Logs` (nunca toca ejecutables ni memoria del juego).
-  - Crea automáticamente un backup intacto en `%APPDATA%\PulseCore\Backups\GameUserSettings.original.ini` antes del primer cambio, aplica presets `Competitivo FPS` o `Calidad Visual` con límite de FPS y opción *Solo Lectura*, y permite restaurar el original en 1 clic.
-- **Logs en vivo y Exportación:**
-  - Consola tipo terminal con filtros por categoría (`GAME`, `FORTNITE`, `BOOST`, `CLEAN`, `POWER`, `INFO`, `WARN`, `ERR`) y exportación a un archivo JSON de diagnóstico en el Escritorio.
-- **Pulse-Llama:**
-  - Mascota táctica interactiva en SVG vectorial en la sidebar que reacciona en tiempo real a temperaturas, carga, Modo Juego y acciones completadas (ocultable con persistencia en `localStorage`).
+- **Dashboard & Telemetría en vivo (1 Hz):**
+  - 4 instrumentos radiales de precisión de 240° para **CPU** (uso %, °C, MHz), **GPU** (carga %, °C, barra VRAM), **RAM física real** y **Disco `C:`**.
+  - Gráfico interactivo Canvas 2D de 60 segundos con crosshair, tooltip flotante y selector `Uso (%)` / `Temp (°C)` / `RAM (%)`.
+  - Panel **Gaming Readiness** (0–100, barra LED de 20 segmentos) + **⚡ Boost Rápido** (Alto Rendimiento + liberación de RAM + vaciado DNS).
+- **Mini-HUD Flotante sin inyección (`HudWindow`):**
+  - Ventana WPF 100% XAML nativo (sin WebView2) en forma de píldora translúcida `Topmost` mostrando **`FPS` (ETW pasivo)**, `CPU %`, `GPU °C`, `RAM GB` y `Ping ms`.
+  - Arrastrable y con modo **Click-Through** (`WS_EX_TRANSPARENT`) para no interceptar clics en partida.
+- **Bandeja del Sistema (System Tray):**
+  - Al cerrar con `X` se oculta en la bandeja para seguir vigilando juegos. Menú contextual con *Abrir PulseCore*, *Mostrar/Ocultar Mini-HUD*, *Desbloquear/Bloquear Mini-HUD*, *⚡ Boost Rápido* y *Salir*.
+- **Optimizador y Limpieza Profunda:**
+  - Cambio reversible de Planes de Energía, Liberador de RAM (`EmptyWorkingSet`) y Top 5 de procesos por RAM.
+  - Limpieza con modo **Dry Run** previo: `%TEMP%` / `C:\Windows\Temp`, Shaders DirectX (`D3DSCache`), caché GPU (`NVIDIA` / `AMD`) y caché DNS.
+- **Modo Juego Automático, Biblioteca y Red Avanzada:**
+  - *Process Watcher* cada 3s (`games.json`), íconos reales en juegos configurados, cambio/restauración automática del plan de energía, elevación de prioridad, **Historial de 30 Sesiones** (`sessions.json`) y **Modal Resumen Post-Partida**.
+  - **Autodetección de Steam y Epic Games** con portadas/íconos reales y lanzamiento en 1 clic con Boost (`⚡ Preparar y Jugar`).
+  - **Monitor de Ping & Jitter** (Cloudflare, Google, AWS Sudamérica con fallback TCP 443), **DNS Switcher con Benchmark** (`Cloudflare`, `Google`, `Quad9`, `DHCP`) y **Test de Packet Loss** (20 pings).
+- **Fortnite Pro (100% seguro):**
+  - Opera solo sobre `GameUserSettings.ini` y `Saved\Demos`, `Crashes` y `Logs`. Crea backup original intacto en `%APPDATA%\PulseCore\Backups\GameUserSettings.original.ini`, aplica presets `Competitivo FPS` o `Calidad Visual` con límite de FPS / *Solo Lectura* y restaura en 1 clic.
+- **Laboratorio de Periféricos:**
+  - **Test de Polling Rate del Mouse** (`getCoalescedEvents`, gráfico en vivo y clasificación hasta `2000+ Hz`) y **Test de Fluidez y Ghosting del Monitor** (`requestAnimationFrame` + pista de 3 carriles con Pulse-Llama).
+- **Apps / Recién Formateado (`winget`):**
+  - Catálogo curado por categorías (*Gaming*, *Navegadores y Multimedia*, *Utilidades*), Pack Gamer, instalación silenciosa y `winget upgrade --all` con consola en vivo.
+- **Check-up Inteligente, Suite de Windows y Centro de Restauración:**
+  - Auditoría de 5 ajustes clave (0–100 pts) + **Debloat Seguro** (5 ajustes reversibles en Registro) + **Gestor de Inicio** (`disabled_startup.json`) + **Reparación SFC / DISM** en vivo.
+  - **Centro de Restauración** unificado (`restore_history.json`) con *Deshacer* individual, *Revertir todo* y creación de **Puntos de Restauración de Windows**.
+- **Logs, Pulse-Llama y Auto-Updater:**
+  - Consola de eventos filtrable + exportación de diagnóstico `.json` al Escritorio.
+  - Mascota táctica interactiva **Pulse-Llama** en SVG que reacciona en tiempo real (ocultable en `localStorage`).
+  - **Auto-Updater** conectado a GitHub Releases (timeout 5s en segundo plano, banner discreto en la UI cuando hay nueva versión).
 
 ---
 
-## Arquitectura
-
-```text
-PulseCore/
-├── PulseCore.slnx
-├── PulseCore.App/
-│   ├── MainWindow.xaml(.cs)        # Ventana sin bordes + puente JSON WebView2 + loop 1 Hz
-│   ├── app.manifest                # Elevación UAC (requireAdministrator) + PerMonitorV2 DPI
-│   ├── Models/                     # DTOs inmutables (Telemetry, Optimizer, GameMode, Fortnite)
-│   ├── Services/                   # Servicios desacoplados sin dependencias de UI
-│   │   ├── TelemetryService.cs     # LibreHardwareMonitor + FallbackProbe Win32
-│   │   ├── PowerPlanService.cs     # powercfg sin consola
-│   │   ├── MemoryOptimizerService.cs
-│   │   ├── CleanerService.cs       # Dry Run + validación de rutas seguras
-│   │   ├── ProcessMonitorService.cs
-│   │   ├── GameModeService.cs      # Process Watcher + games.json
-│   │   ├── NetworkPingService.cs   # ICMP + fallback TCP 443
-│   │   └── FortniteService.cs      # Parser INI + backup automático
-│   └── wwwroot/                    # Frontend servido vía host virtual https://pulsecore.app/
-│       ├── index.html, styles.css
-│       └── app.js, features.js, gamemode.js, fortnite.js, mascot.js
-└── PulseCore.Tests/                # Tests unitarios xUnit deterministas en carpetas temporales
-```
-
-### Puente Asíncrono C# ↔ JS
-La comunicación entre el frontend y el backend nativo se realiza exclusivamente mediante mensajes JSON tipados:
-- **JS → C#:** `window.chrome.webview.postMessage({ type, payload })` recibido en `WebMessageReceived`. Las operaciones pesadas corren fuera del hilo de UI (`Task.Run`) protegidas con `SemaphoreSlim` para evitar solapamientos.
-- **C# → JS:** `CoreWebView2.PostWebMessageAsJson(...)` despachado siempre en el hilo de UI vía `Dispatcher.InvokeAsync`.
-
----
-
-## Requisitos
-
-- Windows 10 / 11 (x64)
-- [.NET SDK](https://dotnet.microsoft.com/) compatible con el `TargetFramework` del proyecto (`net11.0-windows`)
-- Microsoft Edge **WebView2 Runtime** (preinstalado en Windows 11)
-
----
-
-## Compilación, Tests y Ejecución
+## Compilación, Tests y Generación del Instalador
 
 ```powershell
-# 1. Compilar en Debug
+# Compilar en Debug o Release
 dotnet build PulseCore.slnx
+dotnet build PulseCore.slnx -c Release
 
-# 2. Ejecutar tests unitarios (no modifican archivos reales del sistema)
+# Ejecutar tests unitarios (aislados en carpetas temporales)
 dotnet test PulseCore.slnx
 
-# 3. Compilar para producción (Release)
-dotnet build PulseCore.slnx -c Release
+# Generar publish/ y PulseCore-Setup-v1.7.0.exe (requiere Inno Setup 6)
+.\build-release.ps1
 ```
 
-### Ejecutar como Administrador
-`PulseCore.exe` incluye `app.manifest` con `requireAdministrator` para que `LibreHardwareMonitorLib` pueda leer temperaturas reales de CPU/GPU y limpiar `C:\Windows\Temp`.
-
-- **Desde el Explorador o terminal:** ejecutá `PulseCore.App\bin\Release\net11.0-windows\PulseCore.exe` (Windows pedirá confirmación UAC automáticamente).
-- **Desde CLI con `dotnet run`:** abrí PowerShell **como Administrador** y corré:
-  ```powershell
-  dotnet run --project PulseCore.App -c Release
-  ```
+### Ejecución como Administrador
+`PulseCore.exe` incluye `app.manifest` con `requireAdministrator` para leer temperaturas reales de hardware (LibreHardwareMonitor), escuchar eventos ETW de FPS, cambiar DNS/planes de energía y ejecutar SFC/DISM.
