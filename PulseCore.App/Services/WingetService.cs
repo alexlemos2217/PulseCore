@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text;
+using System.Text.RegularExpressions;
 using PulseCore.App.Models;
 
 namespace PulseCore.App.Services;
@@ -34,7 +35,48 @@ public sealed class WingetService
         new("Microsoft.PowerToys", "Microsoft PowerToys", "Utilidades", "Suite oficial de utilidades pro para Windows (FancyZones, etc.).")
     ];
 
+    private static readonly Regex SafePackageIdRx = new(@"^[A-Za-z0-9._\-]{2,90}$", RegexOptions.Compiled);
+    private static readonly Regex SafeQueryRx = new(@"^[A-Za-z0-9 ._\-+]{2,60}$", RegexOptions.Compiled);
+    private static readonly Regex MultiSpaceRx = new(@"\s{2,}", RegexOptions.Compiled);
+
     private readonly SemaphoreSlim _gate = new(1, 1);
+
+    public Task<WingetSearchResult> SearchPackagesAsync(string? query, CancellationToken ct = default) => Task.Run(() =>
+    {
+        query = (query ?? "").Trim();
+        if (!SafeQueryRx.IsMatch(query))
+            return new WingetSearchResult(false, query, [], "Escribí entre 2 y 60 caracteres válidos (letras, números o espacios).");
+
+        var (available, _) = CheckWinget();
+        if (!available)
+            return new WingetSearchResult(false, query, [], "winget no está disponible en este equipo.");
+
+        var r = ProcessRunner.Run("winget", $"search \"{query}\" --accept-source-agreements", 15000);
+        if (r.TimedOut)
+            return new WingetSearchResult(false, query, [], "La búsqueda en winget superó el tiempo de espera.");
+
+        var results = new List<WingetSearchItem>();
+        var lines = r.Output.Split('\n').Select(l => l.TrimEnd('\r')).ToList();
+        var sepIdx = lines.FindIndex(l => l.TrimStart().StartsWith("----", StringComparison.Ordinal));
+        if (sepIdx >= 0)
+        {
+            for (var i = sepIdx + 1; i < lines.Count && results.Count < 15; i++)
+            {
+                var line = lines[i].Trim();
+                if (string.IsNullOrWhiteSpace(line)) continue;
+                var cols = MultiSpaceRx.Split(line);
+                if (cols.Length < 3) continue;
+                var name = cols[0].Trim();
+                var id = cols[1].Trim();
+                var ver = cols[2].Trim();
+                if (!SafePackageIdRx.IsMatch(id)) continue;
+                results.Add(new WingetSearchItem(name, id, ver));
+            }
+        }
+
+        return new WingetSearchResult(true, query, results,
+            results.Count == 0 ? $"No se encontraron paquetes para “{query}”." : null);
+    }, ct);
 
     public bool IsBusy => _gate.CurrentCount == 0;
 
@@ -75,10 +117,18 @@ public sealed class WingetService
                 return;
             }
 
-            // Validar contra el catálogo curado para evitar inyección de argumentos
+            // Acepta IDs del catálogo curado o IDs válidos encontrados por el buscador global de winget
             var validApps = (packageIds ?? [])
                 .Distinct(StringComparer.OrdinalIgnoreCase)
-                .Select(id => Catalog.FirstOrDefault(a => a.Id.Equals(id, StringComparison.OrdinalIgnoreCase)))
+                .Select(id =>
+                {
+                    var trimmed = (id ?? "").Trim();
+                    var known = Catalog.FirstOrDefault(a => a.Id.Equals(trimmed, StringComparison.OrdinalIgnoreCase));
+                    if (known is not null) return known;
+                    if (SafePackageIdRx.IsMatch(trimmed) && trimmed.Contains('.'))
+                        return new WingetAppInfo(trimmed, trimmed, "Búsqueda", "");
+                    return null;
+                })
                 .Where(a => a is not null)
                 .Cast<WingetAppInfo>()
                 .ToList();

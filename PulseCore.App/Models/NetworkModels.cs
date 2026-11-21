@@ -40,3 +40,12 @@ public sealed record PacketLossResult(
     double? MaxMs,
     double? JitterMs,
     string Stability);
+
+public sealed record SpeedTestProgressEvent(string Phase, double ProgressPercent, double CurrentMbps);
+
+public sealed record SpeedTestResult(
+    bool Success,
+    double DownloadMbps,
+    double UploadMbps,
+    long DurationMs,
+    string Message);

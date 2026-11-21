@@ -186,10 +186,63 @@
     }
   }
 
+  // Buscador global de winget (v1.8.0)
+  $("wgSearchForm")?.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const q = ($("wgSearchInput")?.value || "").trim();
+    if (q.length < 2) {
+      toast({ title: "Búsqueda muy corta", parts: ["Escribí al menos 2 caracteres"], tone: "info" });
+      return;
+    }
+    $("btnWgSearch").disabled = true;
+    $("btnWgSearch").classList.add("loading");
+    $("btnWgSearchLabel").textContent = "Buscando…";
+    send("search_winget_apps", { query: q });
+  });
+
+  function onSearchResult(r) {
+    $("btnWgSearch").disabled = false;
+    $("btnWgSearch").classList.remove("loading");
+    $("btnWgSearchLabel").textContent = "🔍 Buscar en winget";
+
+    const box = $("wgSearchResults");
+    if (!box) return;
+    box.hidden = false;
+
+    const list = r.results || [];
+    if (!r.success || !list.length) {
+      box.innerHTML = `<div class="empty-inline mono">${esc(r.message || "Sin resultados.")}</div>`;
+      return;
+    }
+
+    box.innerHTML = list.map((it) =>
+      `<div class="wg-sr-row">` +
+        `<div class="wg-sr-info">` +
+          `<span class="wg-sr-name">${esc(it.name)}</span>` +
+          `<span class="wg-sr-meta mono">${esc(it.id)} · v${esc(it.version)}</span>` +
+        `</div>` +
+        `<button class="action-btn primary small wg-sr-install" data-id="${esc(it.id)}" data-name="${esc(it.name)}">⬇ Instalar</button>` +
+      `</div>`).join("");
+  }
+
+  $("wgSearchResults")?.addEventListener("click", (e) => {
+    const btn = e.target.closest(".wg-sr-install");
+    if (!btn || wg.busy || !wg.available) return;
+    const id = btn.dataset.id;
+    wg.busy = true;
+    wg.activeAction = "install";
+    syncButtons();
+    $("wgProgressText").textContent = `Instalando ${btn.dataset.name} (${id})…`;
+    appendConsole(`Instalando desde búsqueda global: ${btn.dataset.name} (${id})…`, "info");
+    log("APPS", `Instalación winget desde buscador: ${btn.dataset.name} (${id})`);
+    send("install_winget_apps", { packageIds: [id] });
+  });
+
   const routes = {
     winget_catalog: renderCatalog,
     winget_output: onOutput,
     winget_completed: onCompleted,
+    winget_search_result: onSearchResult,
   };
 
   host.addEventListener("message", (e) => {

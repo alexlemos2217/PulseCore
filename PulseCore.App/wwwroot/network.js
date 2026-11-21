@@ -139,13 +139,63 @@
     });
   }
 
+  // ==================== 3. SPEEDTEST INTEGRADO ====================
+  let speedBusy = false;
+
+  $("btnRunSpeed")?.addEventListener("click", () => {
+    if (speedBusy) return;
+    speedBusy = true;
+    $("btnRunSpeed").disabled = true;
+    $("btnRunSpeed").classList.add("loading");
+    $("btnRunSpeedLabel").textContent = "Midiendo…";
+    $("stBar").style.width = "4%";
+    $("stStatus").textContent = "Midiendo velocidad de descarga (25 MB) contra Cloudflare…";
+    log("RED", "Speedtest integrado iniciado (Cloudflare Speed).");
+    send("run_speedtest");
+  });
+
+  function onSpeedProgress(ev) {
+    $("stBar").style.width = `${Math.round(ev.progressPercent || 0)}%`;
+    if (ev.phase === "download") {
+      $("stStatus").textContent = "Midiendo descarga…";
+      if (ev.currentMbps > 0) $("stDown").textContent = `${ev.currentMbps} Mbps`;
+    } else {
+      $("stStatus").textContent = "Midiendo subida (5 MB)…";
+      if (ev.currentMbps > 0) $("stUp").textContent = `${ev.currentMbps} Mbps`;
+    }
+  }
+
+  function onSpeedResult(r) {
+    speedBusy = false;
+    $("btnRunSpeed").disabled = false;
+    $("btnRunSpeed").classList.remove("loading");
+    $("btnRunSpeedLabel").textContent = "🚀 Iniciar Speedtest";
+    $("stBar").style.width = r.success ? "100%" : "0%";
+
+    if (r.success) {
+      $("stDown").textContent = `${r.downloadMbps} Mbps`;
+      $("stUp").textContent = `${r.uploadMbps} Mbps`;
+      $("stDur").textContent = `${(r.durationMs / 1000).toFixed(1)} s`;
+      $("stStatus").textContent = `Completado · ${r.message}`;
+      pulseFrame && pulseFrame("ok");
+      toast({ title: "Speedtest completado", parts: [`↓ ${r.downloadMbps} Mbps`, `↑ ${r.uploadMbps} Mbps`], ms: 7000 });
+      log("RED", `Speedtest: ${r.message} (${(r.durationMs / 1000).toFixed(1)} s)`);
+    } else {
+      $("stStatus").textContent = r.message;
+      toast({ title: "Speedtest no completado", parts: [r.message], tone: "err" });
+      log("ERR", r.message);
+    }
+  }
+
   // ==================== ROUTER ====================
-  const OWN = ["get_dns_state", "benchmark_dns", "apply_dns", "run_packet_loss"];
+  const OWN = ["get_dns_state", "benchmark_dns", "apply_dns", "run_packet_loss", "run_speedtest"];
   const routes = {
     dns_state: renderDns,
     dns_apply_result: onDnsApply,
     packet_loss_progress: onPlProgress,
     packet_loss_result: onPlResult,
+    speedtest_progress: onSpeedProgress,
+    speedtest_result: onSpeedResult,
     action_error: (e) => {
       if (!OWN.includes(e.action)) return;
       plBusy = false; benchBusy = false;

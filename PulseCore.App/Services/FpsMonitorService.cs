@@ -36,7 +36,8 @@ public sealed class FpsMonitorService : IDisposable
     [DllImport("user32.dll")]
     private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 
-    public int CurrentFps => GetCurrentFps();
+    public int CurrentFps => GetMetrics().CurrentFps;
+    public int OnePercentLowFps => GetMetrics().OnePercentLowFps;
 
     public void Start()
     {
@@ -72,24 +73,53 @@ public sealed class FpsMonitorService : IDisposable
         try { s?.Dispose(); } catch (Exception) { }
     }
 
-    public int GetCurrentFps()
+    public (int CurrentFps, int OnePercentLowFps) GetMetrics()
     {
-        if (!_running) return 0;
+        if (!_running) return (0, 0);
         RefreshForegroundPid();
-        if (_foregroundPid <= 4) return 0;
+        if (_foregroundPid <= 4) return (0, 0);
 
         var now = Stopwatch.GetTimestamp();
         var oneSecAgo = now - Stopwatch.Frequency;
+        var twoSecAgo = now - Stopwatch.Frequency * 2;
 
+        long[] snapshot;
         lock (_lock)
         {
-            while (_frameTicks.Count > 0 && _frameTicks.Peek() < oneSecAgo)
+            while (_frameTicks.Count > 0 && _frameTicks.Peek() < twoSecAgo)
                 _frameTicks.Dequeue();
-
-            // Si hay menos de 2 frames en el último segundo, asumimos ventana estática/escritorio.
-            return _frameTicks.Count >= 2 ? _frameTicks.Count : 0;
+            if (_frameTicks.Count < 2) return (0, 0);
+            snapshot = _frameTicks.ToArray();
         }
+
+        var fps = 0;
+        for (var i = snapshot.Length - 1; i >= 0; i--)
+        {
+            if (snapshot[i] >= oneSecAgo) fps++;
+            else break;
+        }
+        if (fps < 2) return (0, 0);
+
+        var deltas = new List<double>(snapshot.Length);
+        var tickToMs = 1000.0 / Stopwatch.Frequency;
+        for (var i = 1; i < snapshot.Length; i++)
+        {
+            var ms = (snapshot[i] - snapshot[i - 1]) * tickToMs;
+            if (ms is > 0.2 and < 500.0) deltas.Add(ms);
+        }
+
+        if (deltas.Count < 10) return (fps, 0);
+        deltas.Sort((a, b) => b.CompareTo(a));
+        var take = Math.Max(1, (int)Math.Ceiling(deltas.Count * 0.01));
+        double sum = 0;
+        for (var i = 0; i < take; i++) sum += deltas[i];
+        var avgSlowMs = sum / take;
+        var onePct = avgSlowMs > 0 ? (int)Math.Round(1000.0 / avgSlowMs) : 0;
+        if (onePct > fps) onePct = fps;
+        return (fps, onePct);
     }
+
+    public int GetCurrentFps() => GetMetrics().CurrentFps;
 
     private void RefreshForegroundPid()
     {

@@ -28,9 +28,11 @@
                    Width="16" Height="16" Margin="0,0,8,0"
                    RenderOptions.BitmapScalingMode="HighQuality" />
 
-            <!-- FPS -->
+            <!-- FPS + 1% Low -->
             <TextBlock x:Name="TxtFps" Text="-- FPS" Foreground="#10B981" FontSize="12.5" FontWeight="ExtraBold"
                        VerticalAlignment="Center" FontFamily="Consolas" />
+            <TextBlock x:Name="TxtOnePct" Text="" Foreground="#64748B" FontSize="10.5" FontWeight="SemiBold"
+                       VerticalAlignment="Center" Margin="5,1,0,0" FontFamily="Consolas" Visibility="Collapsed" />
 
             <Border Width="1" Height="12" Background="#28FFFFFF" Margin="9,0" />
 

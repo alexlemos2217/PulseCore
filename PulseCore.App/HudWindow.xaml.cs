@@ -39,17 +39,28 @@ public partial class HudWindow : Window
         SourceInitialized += (_, _) => ApplyWindowStyles();
     }
 
-    public void UpdateMetrics(TelemetrySnapshot snap, long? pingMs, int fps)
+    public void UpdateMetrics(TelemetrySnapshot snap, long? pingMs, int fps, int onePercentLow = 0)
     {
         if (fps > 0)
         {
             TxtFps.Text = $"{fps} FPS";
             TxtFps.Foreground = fps >= 60 ? EmeraldBrush : fps >= 30 ? AmberBrush : RedBrush;
+            if (onePercentLow > 0)
+            {
+                TxtOnePct.Text = $"· 1% {onePercentLow}";
+                TxtOnePct.Foreground = onePercentLow >= 50 ? CyanBrush : onePercentLow >= 25 ? AmberBrush : RedBrush;
+                TxtOnePct.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                TxtOnePct.Visibility = Visibility.Collapsed;
+            }
         }
         else
         {
             TxtFps.Text = "-- FPS";
             TxtFps.Foreground = MutedBrush;
+            TxtOnePct.Visibility = Visibility.Collapsed;
         }
 
         var cpu = Math.Round(snap.Cpu.UsagePercent);

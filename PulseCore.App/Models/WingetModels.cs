@@ -22,3 +22,11 @@ public sealed record WingetCompletedEvent(
     int Failed,
     int Total,
     string Message);
+
+public sealed record WingetSearchItem(string Name, string Id, string Version);
+
+public sealed record WingetSearchResult(
+    bool Success,
+    string Query,
+    IReadOnlyList<WingetSearchItem> Results,
+    string? Message);

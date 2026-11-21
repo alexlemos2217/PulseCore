@@ -636,6 +636,41 @@
       banner.hidden = false;
       addLog("SYS", `Actualización disponible: PulseCore v${u.latestVersion} (${u.downloadUrl})`);
     },
+    "profile_settings": (s) => {
+      document.querySelectorAll("[data-qprof]").forEach((b) =>
+        b.classList.toggle("active", b.dataset.qprof === s.activeProfile));
+      if ($("chkWeeklyMaint")) $("chkWeeklyMaint").checked = !!s.weeklyMaintenanceEnabled;
+      if ($("weeklyMaintSub") && s.lastMaintenanceUtc) {
+        $("weeklyMaintSub").textContent =
+          `Limpia temporales seguros y DNS cada 7 días · último mantenimiento: ${new Date(s.lastMaintenanceUtc).toLocaleDateString("es-AR")}`;
+      }
+    },
+    "quick_profile_applied": (r) => {
+      if (r.settings) handlers.profile_settings(r.settings);
+      document.querySelectorAll("[data-qprof]").forEach((b) => { b.disabled = false; });
+      if (window.PulseCore && window.PulseCore.toast) {
+        window.PulseCore.toast({ title: "Perfil aplicado", parts: [r.message], ms: 6500 });
+      }
+      addLog("SYS", r.message);
+    },
+    "weekly_maintenance_ran": (r) => {
+      if (r.settings) handlers.profile_settings(r.settings);
+      if (window.PulseCore && window.PulseCore.toast) {
+        window.PulseCore.toast({ title: "Mantenimiento Semanal", parts: [r.message], tone: "info", ms: 7500 });
+      }
+      addLog("CLEAN", r.message);
+    },
+    "config_io_result": (r) => {
+      if (r.settings) handlers.profile_settings(r.settings);
+      if (window.PulseCore && window.PulseCore.toast) {
+        window.PulseCore.toast({
+          title: r.action === "export" ? "Configuración exportada" : "Configuración importada",
+          parts: [r.message],
+          tone: r.success ? "ok" : "err",
+        });
+      }
+      addLog("SYS", r.message);
+    },
   };
 
   if (host) {
@@ -701,6 +736,17 @@
   $("btnMax").addEventListener("click", () => send("window.toggleMaximize"));
   $("btnClose").addEventListener("click", () => send("window.close"));
   $("btnToggleHud")?.addEventListener("click", () => send("toggle_hud"));
+  document.querySelectorAll("[data-qprof]").forEach((btn) =>
+    btn.addEventListener("click", () => {
+      document.querySelectorAll("[data-qprof]").forEach((b) => { b.disabled = true; });
+      send("apply_quick_profile", { profile: btn.dataset.qprof });
+    }));
+  $("chkWeeklyMaint")?.addEventListener("change", (e) => {
+    send("toggle_weekly_maintenance", { enabled: e.target.checked });
+    addLog("SYS", `Mantenimiento semanal automático ${e.target.checked ? "activado" : "desactivado"}.`);
+  });
+  $("btnExportConfig")?.addEventListener("click", () => send("export_config"));
+  $("btnImportConfig")?.addEventListener("click", () => send("import_config"));
   $("btnDownloadUpdate")?.addEventListener("click", () => {
     const url = $("updateBanner")?.dataset.url;
     if (url) send("open_external_url", { url });
@@ -728,6 +774,7 @@
 
   // Boot
   syncChartLegend();
-  addLog("SYS", "PulseCore UI v1.7.0 inicializada. Conectando puente WebView2…");
+  addLog("SYS", "PulseCore UI v1.8.0 inicializada. Conectando puente WebView2…");
   send("app.ready");
+  send("get_profile_settings");
 })();

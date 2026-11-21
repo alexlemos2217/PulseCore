@@ -1,6 +1,6 @@
-; PulseCore v1.7.0 — Instalador oficial (Inno Setup 6)
+; PulseCore v1.8.0 — Instalador oficial (Inno Setup 6)
 #define MyAppName "PulseCore"
-#define MyAppVersion "1.7.0"
+#define MyAppVersion "1.8.0"
 #define MyAppPublisher "PulseCore"
 #define MyAppURL "https://github.com/alexlemos2217/PulseCore"
 #define MyAppExeName "PulseCore.exe"

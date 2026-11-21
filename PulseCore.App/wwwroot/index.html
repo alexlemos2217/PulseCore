@@ -96,6 +96,11 @@
       </div>
     </div>
 
+    <div class="tb-profiles" role="group" aria-label="Perfiles rápidos">
+      <button class="tb-prof-btn" id="btnProfComp" data-qprof="competitive" title="Alto Rendimiento + Boost Rápido + Mostrar Mini-HUD">🎮 Competitivo</button>
+      <button class="tb-prof-btn" id="btnProfWork" data-qprof="work" title="Plan Equilibrado + Ocultar Mini-HUD">💼 Trabajo</button>
+    </div>
+
     <button class="tb-hud-btn" id="btnToggleHud" title="Mostrar u ocultar el Mini-HUD flotante">
       <span>📊</span><span>Mini-HUD</span>
     </button>
@@ -308,7 +313,7 @@
         <div class="sys-chip">
           <div class="sys-chip-row">
             <span class="sys-machine" id="sbMachine">PC Local</span>
-            <span class="sys-ver mono">v1.7.0</span>
+            <span class="sys-ver mono">v1.8.0</span>
           </div>
           <div class="sys-meta mono" id="sbMeta">Inicializando…</div>
           <div class="sys-source mono" id="sbSource" title="Motor de sensores activo">Driver: —</div>
@@ -777,6 +782,35 @@
           </article>
         </div>
 
+        <!-- SPEEDTEST INTEGRADO (CLOUDFLARE, v1.8.0) -->
+        <article class="card glow-card speed-card">
+          <div class="panel-head">
+            <div>
+              <h2 class="panel-title">Speedtest Integrado</h2>
+              <p class="panel-sub" id="stStatus">Medición real de descarga (25 MB) y subida (5 MB) contra Cloudflare Speed</p>
+            </div>
+            <button class="action-btn primary" id="btnRunSpeed">
+              <span class="btn-spin"></span>
+              <span id="btnRunSpeedLabel">🚀 Iniciar Speedtest</span>
+            </button>
+          </div>
+          <div class="pl-track"><div class="pl-fill" id="stBar" style="width:0%"></div></div>
+          <div class="speed-metrics">
+            <div class="pl-stat">
+              <span class="pl-stat-lbl">DESCARGA</span>
+              <span class="pl-stat-val mono cyan" id="stDown">— Mbps</span>
+            </div>
+            <div class="pl-stat">
+              <span class="pl-stat-lbl">SUBIDA</span>
+              <span class="pl-stat-val mono emerald" id="stUp">— Mbps</span>
+            </div>
+            <div class="pl-stat">
+              <span class="pl-stat-lbl">DURACIÓN</span>
+              <span class="pl-stat-val mono violet" id="stDur">— s</span>
+            </div>
+          </div>
+        </article>
+
         <!-- JUEGOS DETECTADOS (STEAM & EPIC) -->
         <article class="card glow-card gm-library-card">
           <div class="panel-head">
@@ -1034,6 +1068,18 @@
           <span class="wg-progress mono" id="wgProgressText">Listo · seleccioná las apps que quieras instalar</span>
         </div>
 
+        <!-- BUSCADOR GLOBAL DE WINGET (v1.8.0) -->
+        <article class="card glow-card wg-search-card">
+          <form class="wg-search-form" id="wgSearchForm" autocomplete="off">
+            <input class="gm-input" id="wgSearchInput" type="text" maxlength="60" placeholder="Buscar cualquier app en winget (ej. Firefox, Notepad++, WinRAR, GeForce)…" />
+            <button class="action-btn primary" id="btnWgSearch" type="submit">
+              <span class="btn-spin"></span>
+              <span id="btnWgSearchLabel">🔍 Buscar en winget</span>
+            </button>
+          </form>
+          <div class="wg-search-results" id="wgSearchResults" hidden></div>
+        </article>
+
         <div class="wg-catalog" id="wgCatalog">
           <div class="empty-inline mono">Cargando catálogo de winget…</div>
         </div>
@@ -1187,6 +1233,24 @@
           </div>
           <div class="ck-hist-list" id="restoreList">
             <div class="empty-inline mono">Todavía no hay cambios registrados para revertir.</div>
+          </div>
+        </article>
+
+        <!-- MANTENIMIENTO SEMANAL + EXPORTAR/IMPORTAR CONFIG (v1.8.0) -->
+        <article class="card glow-card ck-maint-card">
+          <div class="ck-maint-row">
+            <div>
+              <h2 class="panel-title">Mantenimiento Semanal Automático</h2>
+              <p class="panel-sub" id="weeklyMaintSub">Limpia automáticamente temporales seguros y caché DNS una vez cada 7 días al iniciar.</p>
+            </div>
+            <label class="switch"><input type="checkbox" id="chkWeeklyMaint" /><span></span></label>
+          </div>
+          <div class="ck-maint-io">
+            <span class="panel-sub">Respaldo portátil de perfiles y juegos de PulseCore (.json)</span>
+            <div class="head-actions">
+              <button class="action-btn small" id="btnExportConfig">Exportar configuración</button>
+              <button class="action-btn small" id="btnImportConfig">Importar configuración</button>
+            </div>
           </div>
         </article>
       </section>

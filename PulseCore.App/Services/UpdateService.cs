@@ -25,7 +25,7 @@ public sealed class UpdateService
         get
         {
             var v = Assembly.GetExecutingAssembly().GetName().Version;
-            return v is null ? "1.7.0" : $"{v.Major}.{v.Minor}.{Math.Max(0, v.Build)}";
+            return v is null ? "1.8.0" : $"{v.Major}.{v.Minor}.{Math.Max(0, v.Build)}";
         }
     }
 

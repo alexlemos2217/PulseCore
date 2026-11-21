@@ -41,6 +41,7 @@ public partial class MainWindow : Window
     private readonly GameDiscoveryService _discovery = new();
     private readonly WingetService _winget = new();
     private readonly UpdateService _updater = new();
+    private readonly ProfileService _profiles = new();
     private readonly FpsMonitorService _fps = new();
     private readonly SystemCheckupService _checkup;
     private readonly WindowsSuiteService _winSuite;
@@ -208,11 +209,11 @@ public partial class MainWindow : Window
                     _gameMode.RecordTelemetrySample(snapshot.Cpu.UsagePercent, snapshot.Gpu.TemperatureC, snapshot.Ram.UsedGb);
 
                     var hudVisible = false;
-                    var fps = _fps.CurrentFps;
+                    var (fps, onePctLow) = _fps.GetMetrics();
                     await Dispatcher.InvokeAsync(() =>
                     {
                         hudVisible = _hud is { IsVisible: true };
-                        if (hudVisible) _hud!.UpdateMetrics(snapshot, _lastHudPingMs, fps);
+                        if (hudVisible) _hud!.UpdateMetrics(snapshot, _lastHudPingMs, fps, onePctLow);
                     }, System.Windows.Threading.DispatcherPriority.Normal, ct);
 
                     if (hudVisible && Environment.TickCount64 - _lastHudPingTick >= 5000)
@@ -244,6 +245,7 @@ public partial class MainWindow : Window
             StartTelemetryLoop();
             _gameMode.Start();
             _ = CheckForUpdatesAsync();
+            _ = RunDueMaintenanceAsync();
         }
         else MessageBox.Show($"Falló la carga de la UI: {e.WebErrorStatus}", "PulseCore");
     }
@@ -366,6 +368,45 @@ public partial class MainWindow : Window
                     () => Task.FromResult<object>(_fortnite.CleanFortniteFiles(demos, logs)));
                 break;
             }
+            case "run_speedtest":
+                _ = Task.Run(async () =>
+                {
+                    var res = await _netOpt.RunSpeedTestAsync(
+                        prog => Dispatcher.InvokeAsync(() => Send("speedtest_progress", prog)),
+                        _cts.Token);
+                    await Dispatcher.InvokeAsync(() => Send("speedtest_result", res));
+                });
+                break;
+            case "search_winget_apps":
+            {
+                var q = PayloadString(payload, "query");
+                _ = RunActionAsync("search_winget_apps", "winget_search_result", false,
+                    async () => await _winget.SearchPackagesAsync(q, _cts.Token));
+                break;
+            }
+            case "get_profile_settings":
+                _ = RunActionAsync("get_profile_settings", "profile_settings", false,
+                    () => Task.FromResult<object>(_profiles.GetSettings()));
+                break;
+            case "apply_quick_profile":
+            {
+                var profile = PayloadString(payload, "profile") ?? "";
+                _ = ApplyQuickProfileAsync(profile);
+                break;
+            }
+            case "toggle_weekly_maintenance":
+            {
+                var enabled = PayloadBool(payload, "enabled");
+                _ = RunActionAsync("toggle_weekly_maintenance", "profile_settings", false,
+                    () => Task.FromResult<object>(_profiles.SetWeeklyMaintenance(enabled)));
+                break;
+            }
+            case "export_config":
+                ExportConfigDialog();
+                break;
+            case "import_config":
+                ImportConfigDialog();
+                break;
             case "get_dns_state":
                 _ = RunActionAsync("get_dns_state", "dns_state", false,
                     () => Task.FromResult<object>(_netOpt.GetDnsState()));
@@ -837,6 +878,75 @@ public partial class MainWindow : Window
 
     private void SendWindowState() =>
         Send("window.state", new { maximized = WindowState == WindowState.Maximized });
+
+    private async Task RunDueMaintenanceAsync()
+    {
+        try
+        {
+            var (ran, msg) = await _profiles.RunDueWeeklyMaintenanceAsync(_cleaner, _cts.Token);
+            if (ran && msg is not null)
+            {
+                await Dispatcher.InvokeAsync(() =>
+                {
+                    Send("weekly_maintenance_ran", new { message = msg, settings = _profiles.GetSettings() });
+                    _trayIcon?.ShowBalloonTip(4500, "PulseCore — Mantenimiento Semanal", msg, Forms.ToolTipIcon.Info);
+                });
+            }
+        }
+        catch (Exception) { }
+    }
+
+    private async Task ApplyQuickProfileAsync(string profile)
+    {
+        profile = profile.Trim().ToLowerInvariant();
+        if (profile == "competitive")
+        {
+            var boost = await Task.Run(QuickBoost);
+            var settings = _profiles.SetActiveProfile("competitive");
+            await Dispatcher.InvokeAsync(() =>
+            {
+                if (_hud is null || !_hud.IsVisible) ToggleHud();
+                Send("quick_profile_applied", new { profile = "competitive", message = "Perfil Competitivo activado: Alto Rendimiento + Boost + Mini-HUD.", boost, settings });
+                Send("optimizer_state", GetOptimizerState());
+            });
+        }
+        else if (profile == "work")
+        {
+            var plan = await Task.Run(() => _power.SetPowerPlan(PowerPlanService.BalancedGuid));
+            var settings = _profiles.SetActiveProfile("work");
+            await Dispatcher.InvokeAsync(() =>
+            {
+                if (_hud is { IsVisible: true }) ToggleHud();
+                Send("quick_profile_applied", new { profile = "work", message = $"Perfil Trabajo/Estudio activado: {plan.ActiveName ?? "Equilibrado"} + Mini-HUD oculto.", settings });
+                Send("optimizer_state", GetOptimizerState());
+            });
+        }
+    }
+
+    private void ExportConfigDialog()
+    {
+        var dlg = new Microsoft.Win32.SaveFileDialog
+        {
+            Title = "Exportar configuración de PulseCore",
+            Filter = "JSON (*.json)|*.json",
+            FileName = $"PulseCore_Config_{DateTime.Now:yyyyMMdd}.json"
+        };
+        if (dlg.ShowDialog(this) != true) return;
+        var (ok, msg) = _profiles.ExportBundle(dlg.FileName);
+        Send("config_io_result", new { success = ok, action = "export", message = msg });
+    }
+
+    private void ImportConfigDialog()
+    {
+        var dlg = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = "Importar configuración de PulseCore",
+            Filter = "JSON (*.json)|*.json"
+        };
+        if (dlg.ShowDialog(this) != true) return;
+        var (ok, msg) = _profiles.ImportBundle(dlg.FileName);
+        Send("config_io_result", new { success = ok, action = "import", message = msg, settings = _profiles.GetSettings() });
+    }
 
     private async Task CheckForUpdatesAsync()
     {

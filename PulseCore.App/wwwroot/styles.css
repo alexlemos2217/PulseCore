@@ -2391,3 +2391,73 @@ html, body {
   background: rgba(255, 255, 255, 0.04); color: var(--text-dim); cursor: pointer; font-size: 12px;
 }
 .ub-close:hover { background: rgba(255, 255, 255, 0.12); color: #fff; }
+
+
+/* ==================== v1.8.0: PERFILES 1-CLIC, SPEEDTEST, BUSCADOR WINGET, MANTENIMIENTO ==================== */
+.tb-profiles {
+  display: inline-flex;
+  gap: 5px;
+  margin-right: 8px;
+}
+.tb-prof-btn {
+  height: 26px;
+  padding: 0 9px;
+  border-radius: 8px;
+  border: 1px solid var(--border-strong);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.16s ease;
+}
+.tb-prof-btn:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
+.tb-prof-btn.active {
+  border-color: var(--emerald);
+  background: rgba(16, 185, 129, 0.16);
+  color: var(--emerald);
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.22);
+}
+
+.speed-card { padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; }
+.speed-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.pl-stat-val.emerald { color: var(--emerald); }
+
+.wg-search-card { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.wg-search-form { display: grid; grid-template-columns: 1fr auto; gap: 10px; }
+.wg-search-results {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+}
+.wg-search-results[hidden] { display: none; }
+.wg-sr-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 11px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid var(--border);
+}
+.wg-sr-info { display: flex; flex-direction: column; min-width: 0; }
+.wg-sr-name { font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wg-sr-meta { font-size: 10px; color: var(--muted); }
+
+.ck-maint-card { padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; }
+.ck-maint-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.ck-maint-io {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
