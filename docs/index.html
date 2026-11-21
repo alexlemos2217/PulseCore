@@ -175,6 +175,47 @@
       transform: translateY(-1px);
     }
 
+    /* Pro Gold/Cyan Highlight Button */
+    .btn-pro-gold {
+      position: relative;
+      background: linear-gradient(135deg, rgba(251, 191, 36, 0.18) 0%, rgba(245, 158, 11, 0.14) 48%, rgba(0, 229, 255, 0.16) 100%);
+      color: #fef3c7;
+      font-weight: 700;
+      border: 1px solid rgba(251, 191, 36, 0.52);
+      box-shadow: 0 0 26px -6px rgba(245, 158, 11, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+      transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease, border-color 0.22s ease, background 0.22s ease;
+    }
+
+    .btn-pro-gold:hover {
+      transform: translateY(-1.5px);
+      border-color: rgba(251, 191, 36, 0.85);
+      background: linear-gradient(135deg, rgba(251, 191, 36, 0.28) 0%, rgba(245, 158, 11, 0.22) 48%, rgba(0, 229, 255, 0.24) 100%);
+      color: #ffffff;
+      box-shadow: 0 0 34px -4px rgba(251, 191, 36, 0.52), 0 0 18px -4px rgba(0, 229, 255, 0.35);
+    }
+
+    .btn-pro-solid {
+      background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 52%, #00e5ff 100%);
+      color: #05080f;
+      font-weight: 800;
+      border: 1px solid rgba(255, 255, 255, 0.32);
+      box-shadow: 0 10px 30px -6px rgba(245, 158, 11, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+      transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease, filter 0.22s ease;
+    }
+
+    .btn-pro-solid:hover {
+      transform: translateY(-1.5px);
+      filter: brightness(1.07);
+      box-shadow: 0 14px 38px -4px rgba(251, 191, 36, 0.6), 0 0 22px -4px rgba(0, 229, 255, 0.4);
+    }
+
+    .pricing-pro-card {
+      position: relative;
+      background: linear-gradient(165deg, rgba(251, 191, 36, 0.08) 0%, rgba(13, 17, 26, 0.9) 35%, rgba(0, 229, 255, 0.07) 100%);
+      border: 1px solid rgba(251, 191, 36, 0.42);
+      box-shadow: 0 24px 64px -20px rgba(0, 0, 0, 0.85), 0 0 44px -16px rgba(245, 158, 11, 0.28);
+    }
+
     /* Segmented Mode Switch */
     .mode-switch-btn {
       background: transparent;
@@ -285,12 +326,13 @@
           </svg>
         </div>
         <span class="font-extrabold tracking-[0.12em] text-sm sm:text-base text-white">PULSECORE</span>
-        <span class="js-version-badge font-mono text-[11px] font-semibold px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-300 border border-cyan-400/25">v1.8.0</span>
+        <span class="js-version-badge font-mono text-[11px] font-semibold px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-300 border border-cyan-400/25">v2.0.0</span>
       </a>
 
       <!-- Desktop Navigation -->
       <nav class="hidden md:flex items-center gap-7 text-sm font-medium text-slate-400">
         <a href="#funciones" class="hover:text-white transition-colors">Funciones</a>
+        <a href="#precios" class="text-amber-300/90 hover:text-amber-200 transition-colors font-semibold">Precios / Pro</a>
         <a href="#comparativa" class="hover:text-white transition-colors">Comparativa</a>
         <a href="#seguridad" class="hover:text-white transition-colors">Seguridad</a>
         <a href="#faq" class="hover:text-white transition-colors">FAQ</a>
@@ -315,6 +357,7 @@
     <!-- Mobile Dropdown -->
     <div id="mobileMenu" class="hidden md:hidden border-t border-white/[0.07] bg-obsidian/95 backdrop-blur-xl px-4 py-4 space-y-2">
       <a href="#funciones" class="mobile-nav-link block px-3 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white">Funciones</a>
+      <a href="#precios" class="mobile-nav-link block px-3 py-2.5 rounded-lg text-sm font-semibold text-amber-300 hover:bg-white/5 hover:text-amber-200">⚡ Precios / Pro</a>
       <a href="#comparativa" class="mobile-nav-link block px-3 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white">Comparativa</a>
       <a href="#seguridad" class="mobile-nav-link block px-3 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white">Seguridad</a>
       <a href="#faq" class="mobile-nav-link block px-3 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white">FAQ</a>
@@ -335,7 +378,7 @@
           <div class="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.1] backdrop-blur-md mb-7">
             <span class="pulse-dot relative inline-block w-2 h-2 rounded-full bg-emerald-400"></span>
             <span class="font-mono text-xs text-slate-200 tracking-tight">
-              <span class="js-version-badge font-semibold text-emerald-300">v1.8.0</span> Disponible — Instalador Oficial Windows 10/11
+              <span class="js-version-badge font-semibold text-emerald-300">v2.0.0</span> Disponible — Free + Pro Lifetime · Windows 10/11
             </span>
           </div>
 
@@ -351,22 +394,21 @@
           </p>
 
           <!-- Action Row -->
-          <div class="flex flex-col sm:flex-row items-center justify-center gap-3.5 mb-14">
+          <div class="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-3.5 mb-14">
             <a href="https://github.com/alexlemos2217/PulseCore/releases/latest" class="js-download-link btn-primary-glow w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl text-sm sm:text-base">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              <span>Descargar PulseCore <span class="js-version-badge">v1.8.0</span></span>
+              <span>Descargar Gratis (Windows)</span>
               <span class="js-file-size hidden font-mono text-xs px-2 py-0.5 rounded-md bg-black/20 text-slate-950 font-semibold"></span>
             </a>
 
-            <button id="openChangelogBtn" type="button" class="btn-glass w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl text-sm sm:text-base font-semibold cursor-pointer">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-              <span>Ver Changelog</span>
-            </button>
-
-            <a href="https://github.com/alexlemos2217/PulseCore" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-slate-300 hover:text-cyan-300 transition-colors">
-              <span>Código en GitHub</span>
-              <span aria-hidden="true">→</span>
+            <a href="https://lemosphere67.gumroad.com/l/pulsecore-pro" target="_blank" rel="noopener" class="btn-pro-gold w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl text-sm sm:text-base">
+              <span>⚡ Obtener PulseCore Pro</span>
             </a>
+
+            <button id="openChangelogBtn" type="button" class="btn-glass w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl text-sm font-semibold cursor-pointer">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              <span>Changelog</span>
+            </button>
           </div>
         </div>
 
@@ -399,7 +441,7 @@
                 <div class="h-4 w-px bg-white/10 hidden sm:block"></div>
                 <div class="flex items-center gap-2 font-mono text-[11px] sm:text-xs text-slate-300">
                   <span class="font-bold text-white tracking-wider">PULSECORE</span>
-                  <span class="js-version-badge text-cyan-400">v1.8.0</span>
+                  <span class="js-version-badge text-cyan-400">v2.0.0</span>
                   <span class="text-slate-600">·</span>
                   <span class="px-1.5 py-0.5 rounded bg-indigo-500/15 text-indigo-300 border border-indigo-400/25 text-[10px]">ADMIN</span>
                   <span class="text-slate-600">·</span>
@@ -577,7 +619,7 @@
     <section id="funciones" class="py-20 sm:py-28">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="max-w-3xl mx-auto text-center mb-14 reveal">
-          <span class="font-mono text-xs uppercase tracking-[0.2em] text-cyan-400 font-semibold">Suite Completa v1.8.0</span>
+          <span class="font-mono text-xs uppercase tracking-[0.2em] text-cyan-400 font-semibold">Suite Completa v2.0.0</span>
           <h2 class="mt-3 text-3xl sm:text-5xl font-extrabold tracking-tight text-white">Todo lo que necesitás en una sola app nativa</h2>
           <p class="mt-4 text-slate-400 text-base sm:text-lg">Diseñada en C# y WPF para consumir recursos mínimos mientras exprime tu hardware con total seguridad.</p>
         </div>
@@ -821,13 +863,129 @@
                 </tr>
                 <tr>
                   <td class="py-4 px-6 font-medium text-slate-200">Precio</td>
-                  <td class="py-4 px-6 text-center compare-highlight font-mono text-base font-extrabold text-cyan-300">$0 Gratis</td>
+                  <td class="py-4 px-6 text-center compare-highlight font-mono text-sm font-extrabold text-cyan-300">Gratis · Pro Lifetime</td>
                   <td class="py-4 px-6 text-center font-mono text-slate-400">$0</td>
-                  <td class="py-4 px-6 text-center font-mono text-slate-400">$15 – $49 USD</td>
+                  <td class="py-4 px-6 text-center font-mono text-slate-400">$15 – $49 / año</td>
                 </tr>
               </tbody>
             </table>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5.5. PRICING SECTION: FREE VS PRO (#precios) -->
+    <section id="precios" class="py-20 sm:py-28 border-t border-white/[0.06]">
+      <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-3xl mx-auto text-center mb-14 reveal">
+          <span class="font-mono text-xs uppercase tracking-[0.2em] text-amber-300 font-semibold">Freemium + Pro Lifetime</span>
+          <h2 class="mt-3 text-3xl sm:text-5xl font-extrabold tracking-tight text-white">Empezá gratis. Desbloqueá Pro para siempre.</h2>
+          <p class="mt-4 text-slate-400 text-base sm:text-lg">Sin suscripciones mensuales ni renovaciones sorpresa. Pagás una sola vez y es tuyo de por vida.</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+          <!-- PLAN FREE -->
+          <article class="glass-card rounded-3xl p-7 sm:p-8 flex flex-col justify-between reveal">
+            <div>
+              <div class="flex items-center justify-between gap-3 mb-4">
+                <span class="font-mono text-[11px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full bg-white/[0.06] text-slate-300 border border-white/[0.1]">GRATIS PARA SIEMPRE</span>
+                <span class="font-mono text-xs text-slate-500">Sin registro</span>
+              </div>
+              <h3 class="text-2xl font-extrabold text-white">PulseCore Free</h3>
+              <div class="mt-3 flex items-baseline gap-2">
+                <span class="font-mono text-4xl font-extrabold text-white">$0</span>
+                <span class="text-sm text-slate-400">/ Para siempre</span>
+              </div>
+              <p class="mt-3 text-sm text-slate-400">Todo lo esencial para monitorear tu PC, ver tus FPS sin inyección y activar el Modo Juego.</p>
+
+              <ul class="mt-7 space-y-3 text-sm text-slate-300">
+                <li class="flex items-start gap-2.5">
+                  <span class="text-emerald-400 font-bold mt-0.5">✓</span>
+                  <span>Dashboard y telemetría en vivo (CPU, GPU, RAM, Red)</span>
+                </li>
+                <li class="flex items-start gap-2.5">
+                  <span class="text-emerald-400 font-bold mt-0.5">✓</span>
+                  <span>Boost Rápido y Limpieza básica</span>
+                </li>
+                <li class="flex items-start gap-2.5">
+                  <span class="text-emerald-400 font-bold mt-0.5">✓</span>
+                  <span>Modo Juego automático (Alto Rendimiento)</span>
+                </li>
+                <li class="flex items-start gap-2.5">
+                  <span class="text-emerald-400 font-bold mt-0.5">✓</span>
+                  <span>Mini-HUD flotante (FPS, CPU, GPU, Ping)</span>
+                </li>
+                <li class="flex items-start gap-2.5">
+                  <span class="text-emerald-400 font-bold mt-0.5">✓</span>
+                  <span>Catálogo curado de 12 apps esenciales con <code class="font-mono text-xs text-cyan-300">winget</code></span>
+                </li>
+              </ul>
+            </div>
+
+            <div class="mt-8 pt-6 border-t border-white/[0.07]">
+              <a href="https://github.com/alexlemos2217/PulseCore/releases/latest" class="js-download-link btn-glass w-full inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl text-sm font-bold">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                <span>Descargar Gratis</span>
+              </a>
+            </div>
+          </article>
+
+          <!-- PLAN PRO -->
+          <article class="pricing-pro-card rounded-3xl p-7 sm:p-8 flex flex-col justify-between reveal">
+            <div>
+              <div class="flex items-center justify-between gap-3 mb-4">
+                <span class="font-mono text-[11px] font-extrabold uppercase tracking-widest px-3 py-1 rounded-full bg-gradient-to-r from-amber-400/25 to-cyan-400/20 text-amber-200 border border-amber-400/45">★ PAGO ÚNICO · LIFETIME</span>
+                <span class="font-mono text-xs text-cyan-300">Hasta 2 PCs</span>
+              </div>
+              <h3 class="text-2xl font-extrabold text-white">PulseCore Pro</h3>
+              <div class="mt-3 flex items-baseline gap-2">
+                <span class="text-lg sm:text-xl font-extrabold bg-gradient-to-r from-amber-200 via-amber-300 to-cyan-300 bg-clip-text text-transparent">Pago único de por vida</span>
+              </div>
+              <p class="mt-1 text-xs font-mono text-slate-400">Sin suscripciones · Actualizaciones incluidas · Activación instantánea</p>
+
+              <ul class="mt-6 space-y-3 text-sm text-slate-200">
+                <li class="flex items-start gap-2.5">
+                  <span class="text-amber-300 font-bold mt-0.5">★</span>
+                  <span class="font-semibold text-white">Todo lo incluido en PulseCore Free</span>
+                </li>
+                <li class="flex items-start gap-2.5">
+                  <span class="text-cyan-300 font-bold mt-0.5">✓</span>
+                  <span><strong class="text-white">1% Low FPS</strong> en tiempo real en el Mini-HUD</span>
+                </li>
+                <li class="flex items-start gap-2.5">
+                  <span class="text-cyan-300 font-bold mt-0.5">✓</span>
+                  <span><strong class="text-white">Fortnite Pro</strong>: presets competitivos en <code class="font-mono text-xs text-cyan-300">GameUserSettings.ini</code>, backup automático y limpiador de replays</span>
+                </li>
+                <li class="flex items-start gap-2.5">
+                  <span class="text-cyan-300 font-bold mt-0.5">✓</span>
+                  <span><strong class="text-white">Suite de Windows completa</strong>: Debloat reversible, Gestor de Inicio y reparación SFC/DISM</span>
+                </li>
+                <li class="flex items-start gap-2.5">
+                  <span class="text-cyan-300 font-bold mt-0.5">✓</span>
+                  <span><strong class="text-white">Red Avanzada</strong>: DNS Benchmark, test de Packet Loss y Speedtest</span>
+                </li>
+                <li class="flex items-start gap-2.5">
+                  <span class="text-cyan-300 font-bold mt-0.5">✓</span>
+                  <span><strong class="text-white">Perfiles 1-clic</strong>, Exportar/Importar y Mantenimiento Semanal</span>
+                </li>
+                <li class="flex items-start gap-2.5">
+                  <span class="text-cyan-300 font-bold mt-0.5">✓</span>
+                  <span><strong class="text-white">Buscador global de <code class="font-mono text-xs text-cyan-300">winget</code></strong> y Actualizar todo en 1 clic</span>
+                </li>
+                <li class="flex items-start gap-2.5">
+                  <span class="text-emerald-400 font-bold mt-0.5">✓</span>
+                  <span>Hasta <strong class="text-white">2 activaciones</strong> (PC principal + laptop o reinstalación)</span>
+                </li>
+              </ul>
+            </div>
+
+            <div class="mt-8 pt-6 border-t border-amber-400/20">
+              <a href="https://lemosphere67.gumroad.com/l/pulsecore-pro" target="_blank" rel="noopener" class="btn-pro-solid w-full inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl text-sm">
+                <span>⚡ Comprar Licencia Pro</span>
+              </a>
+              <p class="mt-2.5 text-center font-mono text-[11px] text-slate-400">Checkout seguro vía Gumroad · Clave al instante</p>
+            </div>
+          </article>
         </div>
       </div>
     </section>
@@ -890,37 +1048,67 @@
         </div>
 
         <div class="space-y-3.5 reveal" id="faqAccordion">
-          <!-- FAQ 1 -->
+          <!-- FAQ 1: Suscripción -->
           <div class="faq-item glass-card rounded-2xl overflow-hidden" data-open="true">
             <button type="button" class="faq-trigger w-full px-6 py-5 text-left flex items-center justify-between gap-4 cursor-pointer bg-transparent border-0 text-white font-semibold text-sm sm:text-base">
-              <span>¿Es seguro con Easy Anti-Cheat, Vanguard o BattlEye?</span>
+              <span>¿Es suscripción mensual?</span>
               <svg class="faq-chevron shrink-0 text-cyan-400" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
             <div class="faq-content">
               <div class="faq-inner">
                 <p class="px-6 pb-5 text-sm text-slate-400 leading-relaxed">
-                  Sí. A diferencia de otros overlays que inyectan librerías DLL dentro del proceso del juego, PulseCore mide los FPS y el 1% Low utilizando <strong class="text-slate-200">ETW (Event Tracing for Windows)</strong>, una interfaz oficial del propio sistema operativo. No modifica binarios ni memoria de ningún juego.
+                  No. PulseCore Pro es un <strong class="text-slate-200">pago único de por vida</strong> con todas las actualizaciones incluidas y hasta 2 activaciones (PC principal + laptop o reinstalación). Además, la edición Free es gratis para siempre.
                 </p>
               </div>
             </div>
           </div>
 
-          <!-- FAQ 2 -->
+          <!-- FAQ 2: Entrega de clave -->
           <div class="faq-item glass-card rounded-2xl overflow-hidden" data-open="false">
             <button type="button" class="faq-trigger w-full px-6 py-5 text-left flex items-center justify-between gap-4 cursor-pointer bg-transparent border-0 text-white font-semibold text-sm sm:text-base">
-              <span>¿Por qué pide permisos de Administrador (UAC)?</span>
+              <span>¿Cómo recibo mi clave de PulseCore Pro?</span>
               <svg class="faq-chevron shrink-0 text-cyan-400" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
             <div class="faq-content">
               <div class="faq-inner">
                 <p class="px-6 pb-5 text-sm text-slate-400 leading-relaxed">
-                  Windows exige privilegios elevados para acceder a los sensores de temperatura de CPU/GPU, iniciar sesiones ETW de conteo de frames, cambiar servidores DNS en el adaptador de red, alternar planes de energía y ejecutar herramientas de reparación como <code class="font-mono text-xs text-cyan-300">SFC /scannow</code> y <code class="font-mono text-xs text-cyan-300">DISM</code>.
+                  Al instante por correo electrónico vía <strong class="text-slate-200">Gumroad</strong> apenas completás la compra. Solo tenés que hacer clic en <strong class="text-amber-300">⚡ Hazte Pro</strong> dentro de la app, pegar tu clave y se desbloquean todas las funciones Pro al momento sin reiniciar.
                 </p>
               </div>
             </div>
           </div>
 
-          <!-- FAQ 3 -->
+          <!-- FAQ 3: Offline -->
+          <div class="faq-item glass-card rounded-2xl overflow-hidden" data-open="false">
+            <button type="button" class="faq-trigger w-full px-6 py-5 text-left flex items-center justify-between gap-4 cursor-pointer bg-transparent border-0 text-white font-semibold text-sm sm:text-base">
+              <span>¿Funciona sin internet?</span>
+              <svg class="faq-chevron shrink-0 text-cyan-400" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="faq-content">
+              <div class="faq-inner">
+                <p class="px-6 pb-5 text-sm text-slate-400 leading-relaxed">
+                  Sí. Una vez activada tu licencia Pro, se guarda cifrada de forma local en tu Windows (DPAPI) y <strong class="text-slate-200">funciona 100% offline</strong> sin bloquearte si te quedás sin conexión.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- FAQ 4: Anti-cheat -->
+          <div class="faq-item glass-card rounded-2xl overflow-hidden" data-open="false">
+            <button type="button" class="faq-trigger w-full px-6 py-5 text-left flex items-center justify-between gap-4 cursor-pointer bg-transparent border-0 text-white font-semibold text-sm sm:text-base">
+              <span>¿Es segura con anti-cheats como EAC, Vanguard o BattlEye?</span>
+              <svg class="faq-chevron shrink-0 text-cyan-400" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="faq-content">
+              <div class="faq-inner">
+                <p class="px-6 pb-5 text-sm text-slate-400 leading-relaxed">
+                  Totalmente segura. PulseCore <strong class="text-slate-200">no inyecta código ni toca la memoria de ningún juego</strong>. Mide los FPS y el 1% Low de forma pasiva leyendo eventos oficiales <strong class="text-slate-200">ETW (Event Tracing for Windows)</strong>.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- FAQ 5: UAC / Reversibilidad -->
           <div class="faq-item glass-card rounded-2xl overflow-hidden" data-open="false">
             <button type="button" class="faq-trigger w-full px-6 py-5 text-left flex items-center justify-between gap-4 cursor-pointer bg-transparent border-0 text-white font-semibold text-sm sm:text-base">
               <span>¿Puedo deshacer cualquier cambio que haga la app?</span>
@@ -929,22 +1117,7 @@
             <div class="faq-content">
               <div class="faq-inner">
                 <p class="px-6 pb-5 text-sm text-slate-400 leading-relaxed">
-                  Totalmente. PulseCore incluye un <strong class="text-slate-200">Centro de Restauración</strong> integrado para revertir ajustes de Debloat, Registro y DNS en un clic, además de permitir crear Puntos de Restauración nativos de Windows y respaldos automáticos de tu configuración de Fortnite.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <!-- FAQ 4 -->
-          <div class="faq-item glass-card rounded-2xl overflow-hidden" data-open="false">
-            <button type="button" class="faq-trigger w-full px-6 py-5 text-left flex items-center justify-between gap-4 cursor-pointer bg-transparent border-0 text-white font-semibold text-sm sm:text-base">
-              <span>¿Es realmente gratis y sin costos ocultos?</span>
-              <svg class="faq-chevron shrink-0 text-cyan-400" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
-            </button>
-            <div class="faq-content">
-              <div class="faq-inner">
-                <p class="px-6 pb-5 text-sm text-slate-400 leading-relaxed">
-                  Sí, PulseCore es 100% gratuito, de código abierto y se distribuye directamente desde GitHub Releases sin publicidad, sin mineros ni telemetría oculta. Además incluye Auto-Updater para avisarte cuando sale una nueva versión.
+                  Sí. Incluye un <strong class="text-slate-200">Centro de Restauración</strong> para revertir ajustes de Debloat, Registro y DNS en un clic, además de Puntos de Restauración de Windows y respaldo automático de tu configuración de Fortnite.
                 </p>
               </div>
             </div>
@@ -962,10 +1135,10 @@
           <div class="flex flex-col sm:flex-row items-center justify-center gap-3.5">
             <a href="https://github.com/alexlemos2217/PulseCore/releases/latest" class="js-download-link btn-primary-glow w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-7 py-4 rounded-xl text-sm sm:text-base">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              <span>Descargar Instalador <span class="js-version-badge">v1.8.0</span></span>
+              <span>Descargar Gratis <span class="js-version-badge">v2.0.0</span></span>
             </a>
-            <a href="https://github.com/alexlemos2217/PulseCore" target="_blank" rel="noopener noreferrer" class="btn-glass w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-4 rounded-xl text-sm sm:text-base font-semibold">
-              <span>Explorar Repositorio</span>
+            <a href="https://lemosphere67.gumroad.com/l/pulsecore-pro" target="_blank" rel="noopener" class="btn-pro-gold w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-4 rounded-xl text-sm sm:text-base">
+              <span>⚡ Obtener PulseCore Pro</span>
             </a>
           </div>
         </div>
@@ -985,13 +1158,14 @@
         <div>
           <div class="flex items-center gap-2">
             <span class="font-extrabold tracking-widest text-xs text-white">PULSECORE</span>
-            <span class="js-version-badge font-mono text-[11px] text-cyan-400">v1.8.0</span>
+            <span class="js-version-badge font-mono text-[11px] text-cyan-400">v2.0.0</span>
           </div>
-          <p class="text-xs text-slate-500">Desarrollado por Alex Lemos · Open Source para Windows</p>
+          <p class="text-xs text-slate-500">Desarrollado por Alex Lemos · Free &amp; Pro para Windows</p>
         </div>
       </div>
 
       <div class="flex flex-wrap items-center justify-center gap-6 text-xs sm:text-sm text-slate-400">
+        <a href="#precios" class="hover:text-amber-300 transition-colors">Precios / Pro</a>
         <a href="https://github.com/alexlemos2217/PulseCore" target="_blank" rel="noopener noreferrer" class="hover:text-white transition-colors">GitHub Repo</a>
         <a href="https://github.com/alexlemos2217/PulseCore/releases" target="_blank" rel="noopener noreferrer" class="hover:text-white transition-colors">Releases</a>
         <a href="https://github.com/alexlemos2217/PulseCore/issues" target="_blank" rel="noopener noreferrer" class="hover:text-white transition-colors">Reportar Bug / Issues</a>
@@ -1005,7 +1179,7 @@
       <div class="flex items-center justify-between px-6 py-4 border-b border-white/[0.08] bg-black/30">
         <div class="flex items-center gap-2.5">
           <h3 id="changelogTitle" class="text-base sm:text-lg font-bold text-white">Notas de la Versión</h3>
-          <span class="js-version-badge font-mono text-xs px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-400/25">v1.8.0</span>
+          <span class="js-version-badge font-mono text-xs px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-400/25">v2.0.0</span>
         </div>
         <button id="closeChangelogBtn" type="button" aria-label="Cerrar modal" class="btn-glass p-2 rounded-xl text-slate-300 cursor-pointer">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -1369,12 +1543,13 @@
       const changelogDate = document.getElementById('changelogDate');
 
       const DEFAULT_NOTES = [
-        '## ⚡ Novedades de PulseCore v1.8.0',
-        '- **Mini-HUD Flotante (ETW sin inyección):** Contador de FPS reales + 1% Low FPS, CPU, GPU °C, RAM y Ping.',
+        '## ⚡ Novedades de PulseCore v2.0.0',
+        '- **PulseCore Pro (Licencia Lifetime):** Activación instantánea con clave de Gumroad, cifrado local Windows DPAPI, hasta 2 PCs y funcionamiento 100% offline.',
+        '- **Mini-HUD ETW mejorado (DX11/DX12/Vulkan/OpenGL/UWP):** Contador de FPS reales + 1% Low FPS (Pro) sin inyección anti-cheat y refresco cada 500 ms.',
         '- **Modo Juego Automático:** Detección de Steam/Epic, Alto Rendimiento automático y resumen post-partida.',
-        '- **Suite de Windows Segura:** Debloat 100% reversible, Gestor de Inicio y reparación SFC/DISM.',
-        '- **Red Avanzada:** DNS Switcher con Benchmark, Test de Packet Loss y Speedtest integrado.',
-        '- **Apps (winget) & Extras Pro:** Buscador global de winget, Perfiles 1-clic, Exportar/Importar config y Mantenimiento Semanal.',
+        '- **Suite de Windows Segura (Pro):** Debloat 100% reversible, Gestor de Inicio y reparación SFC/DISM.',
+        '- **Red Avanzada (Pro):** DNS Switcher con Benchmark, Test de Packet Loss y Speedtest integrado.',
+        '- **Apps (`winget`) & Extras Pro:** Catálogo curado de 12 apps gratis + buscador global de `winget`, Actualizar todo en 1 clic, Perfiles 1-clic y Mantenimiento Semanal.',
       ].join('\n');
 
       function escapeHtml(str) {
@@ -1452,6 +1627,18 @@
       });
 
       // Live GitHub Releases Fetch
+      function parseSemver(v) {
+        return String(v || '').replace(/^v/i, '').split('.').map((n) => parseInt(n, 10) || 0);
+      }
+      function isVersionAtLeast(tag, minVer) {
+        const a = parseSemver(tag);
+        const b = parseSemver(minVer);
+        for (let i = 0; i < 3; i++) {
+          if ((a[i] || 0) !== (b[i] || 0)) return (a[i] || 0) > (b[i] || 0);
+        }
+        return true;
+      }
+
       async function syncLatestRelease() {
         try {
           const resp = await fetch('https://api.github.com/repos/alexlemos2217/PulseCore/releases/latest', {
@@ -1460,10 +1647,12 @@
           if (!resp.ok) return;
           const data = await resp.json();
 
-          const tag = typeof data.tag_name === 'string' && data.tag_name.trim() ? data.tag_name.trim() : 'v1.8.0';
-          document.querySelectorAll('.js-version-badge').forEach((el) => {
-            el.textContent = tag;
-          });
+          const tag = typeof data.tag_name === 'string' && data.tag_name.trim() ? data.tag_name.trim() : 'v2.0.0';
+          if (isVersionAtLeast(tag, '2.0.0')) {
+            document.querySelectorAll('.js-version-badge').forEach((el) => {
+              el.textContent = tag;
+            });
+          }
 
           let downloadUrl = data.html_url || 'https://github.com/alexlemos2217/PulseCore/releases/latest';
           let sizeMb = null;
